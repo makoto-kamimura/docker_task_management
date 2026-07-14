@@ -1,0 +1,34 @@
+# Laravel (app/api)
+app/api/vendor/
+app/api/.env
+app/api/.env.*
+!app/api/.env.example
+app/api/storage/*.key
+app/api/storage/framework/cache/*
+app/api/storage/framework/sessions/*
+app/api/storage/framework/testing/*
+app/api/storage/framework/views/*
+app/api/storage/logs/*
+app/api/bootstrap/cache/*.php
+app/api/public/storage
+app/api/.phpunit.result.cache
+
+# Web (app/web)
+app/web/node_modules/
+app/web/dist/
+app/web/.env
+app/web/.env.*
+!app/web/.env.example
+
+# Mobile (app/mobile)
+app/mobile/node_modules/
+app/mobile/.expo/
+app/mobile/dist/
+app/mobile/ios/
+app/mobile/android/
+app/mobile/.env
+app/mobile/.env.*
+!app/mobile/.env.example
+
+# OS
+.DS_Store
