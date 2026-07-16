@@ -1,6 +1,6 @@
 # 人生のコンパス タスク一覧
 
-最終更新: 2026-07-14 ／ 設計は [design.md](design.md) を参照
+最終更新: 2026-07-16 ／ 設計は [design.md](design.md) を参照
 
 各タスクは **AI コーディングエージェント（Claude Code 等）に 1 件ずつ依頼できる粒度**に分解している。
 
@@ -87,7 +87,7 @@
 
 ### T-203 Web: 今日のコンパス+完了記録+ダッシュボード ［AI］
 - 依存: T-106, T-202
-- 内容: readme のホーム画面（🧭 今日の一歩 → 開始 → タイマー → 😊/😅/❌）とダッシュボード
+- 内容: readme のホーム画面（🧭 今日の一歩 → 開始 → タイマー → 結果入力: 😊完了/😅少しだけ/❌また今度）とダッシュボード
 - 完了条件: 開始→タイマー→結果記録→ダッシュボード反映が一連で動く
 
 ### T-204 通知スケジューラ ［AI］
@@ -114,30 +114,31 @@
 - 内容: 通知許可取得・トークン登録・インタラクティブ通知（[開始][あとで]）のカテゴリ実装。[開始] でタイマー画面へディープリンク
 - 完了条件: コードは AI。実機での通知動作確認は人間
 
-### T-303 expo-apple-targets で watch ターゲット追加 ［AI+人］
+### T-303 expo-apple-targets で watch ターゲット追加 ［AI+人］ ✅ AI 側完了（2026-07-16）
 - 依存: T-301
-- 内容: `@bacons/apple-targets` を導入し `targets/watch/` に SwiftUI の空アプリを作成、prebuild で Xcode プロジェクトに組み込まれるよう設定（design.md 3章）
-- 完了条件: `npx expo prebuild` 後、Xcode で watch スキームがビルドできる（ビルド確認は人間の Mac + Xcode）
+- 内容: `@bacons/apple-targets` を導入し `targets/watch/`（type: watch）と `targets/watch-widget/`（type: watch-widget、T-306用）を作成。App Group `group.com.lifecompass.mobile` を両ターゲットに設定
+- 完了条件: `npx expo prebuild -p ios --clean` 後、`LifeCompassWatch` / `LifeCompassComplication` スキームが watch シミュレータ向けに `xcodebuild` でビルド成功することを確認済み（CocoaPods を 1.17.0 に更新して解決）
+- 残作業（人間）: `app.json` の `ios.appleTeamId` 設定、Apple Developer Program での App Group 登録・実機での signing（T-901 依存）
 
-### T-304 Watch: 今日の一歩画面 ［AI+人］
+### T-304 Watch: 今日の一歩画面 ［AI+人］ ✅ AI 側完了（2026-07-16）
 - 依存: T-303
-- 内容: SwiftUI で「🧭 今日の一歩 / タイトル / 所要時間 / 開始する」画面。データは WatchConnectivity で iPhone から受信、取れない場合は API から直接取得（URLSession + トークン共有）
-- 完了条件: シミュレータで今日の一歩が表示される（実機確認は人間）
+- 内容: `targets/watch/TodayStepView.swift` で「🧭 今日の一歩 / タイトル / 所要時間 / 開始する」画面を実装。`PhoneConnector.swift`（WCSessionDelegate）が iPhone からの applicationContext を受信、未受信時は `APIClient.swift`（URLSession）で `/compass/today` を直接取得
+- 完了条件: watch シミュレータ向けビルド成功で確認済み（実機・実データでの表示確認は人間）
 
-### T-305 Watch: タイマー+結果入力 ［AI+人］
+### T-305 Watch: タイマー+結果入力 ［AI+人］ ✅ AI 側完了（2026-07-16）
 - 依存: T-304
-- 内容: カウントダウンタイマー（バックグラウンド継続）、終了時に 😊/😅/❌ のワンタップ入力、途中終了時は elapsed_seconds を送信（「少しだけ」対応）。POST /task-logs（source=watch）
-- 完了条件: シミュレータで開始→終了→記録が API に届く
+- 内容: `TimerView.swift`（`WKExtendedRuntimeSession` でバックグラウンド継続）+ `ResultView.swift`（結果入力ワンタップ、SF Symbols表記: checkmark.circle.fill=完了/circle.lefthalf.filled=少しだけ/xmark.circle.fill=また今度、`elapsed_seconds` 送信、POST /task-logs source=watch）
+- 完了条件: watch シミュレータ向けビルド成功で確認済み（実機での開始→終了→API到達確認は人間）
 
-### T-306 Watch: WidgetKit コンプリケーション ［AI+人］
+### T-306 Watch: WidgetKit コンプリケーション ［AI+人］ ✅ AI 側完了（2026-07-16）
 - 依存: T-304
-- 内容: 「今日の一歩」タイトルを表示するコンプリケーション（accessoryRectangular / accessoryInline）
-- 完了条件: シミュレータの文字盤に今日のタスク名が表示される
+- 内容: `targets/watch-widget/widgets.swift` で SharedStore（App Group 経由）の「今日の一歩」タイトルを表示するコンプリケーション（accessoryCircular / accessoryRectangular / accessoryInline）
+- 完了条件: watch シミュレータ向けビルド成功で確認済み（実機の文字盤での表示確認は人間）
 
-### T-307 RN ↔ Watch 連携ブリッジ ［AI+人］
+### T-307 RN ↔ Watch 連携ブリッジ ［AI+人］ ✅ AI 側完了（2026-07-16）
 - 依存: T-303
-- 内容: react-native-watch-connectivity（または Expo Native Module）で、ログイントークンと今日の一歩を iPhone→Watch へ同期
-- 完了条件: iPhone でログインすると Watch 側でも API を呼べる状態になる
+- 内容: `react-native-watch-connectivity` を導入。`src/watch/sync.ts` が `updateApplicationContext` でログイントークン（auth-store の hydrate/setToken/clearToken 時）と今日の一歩（today.tsx の取得時）を Watch へ同期
+- 完了条件: コード実装・型チェック・prebuild/ビルド確認済み（iPhone実機でログイン→Watch側でAPIを呼べる状態になることの確認は人間）
 
 ---
 

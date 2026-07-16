@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { fetchTodayRecommendation } from '../../src/api/compass'
 import { useTimerStore, DEFAULT_DURATION_MINUTES } from '../../src/store/timer-store'
 import { colors } from '../../src/theme'
+import { syncTodayStepToWatch } from '../../src/watch/sync'
 
 export default function TodayScreen() {
   const router = useRouter()
@@ -33,6 +34,12 @@ export default function TodayScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.autostart, task])
+
+  useEffect(() => {
+    if (!isLoading) {
+      syncTodayStepToWatch(task ?? null)
+    }
+  }, [task, isLoading])
 
   return (
     <View style={styles.container}>

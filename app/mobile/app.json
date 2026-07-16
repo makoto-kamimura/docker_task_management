@@ -11,7 +11,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.lifecompass.mobile",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -35,7 +37,8 @@
         {
           "icon": "./assets/icon.png"
         }
-      ]
+      ],
+      "@bacons/apple-targets"
     ],
     "experiments": {
       "typedRoutes": true
