@@ -7,6 +7,7 @@ enum SharedStore {
     private enum Key {
         static let token = "life_compass_token"
         static let todayStep = "life_compass_today_step"
+        static let apiBaseUrl = "life_compass_api_base_url"
     }
 
     static func saveToken(_ token: String?) {
@@ -15,6 +16,15 @@ enum SharedStore {
 
     static func loadToken() -> String? {
         AppGroup.userDefaults.string(forKey: Key.token)
+    }
+
+    /// iPhone が使っている API のベース URL。Watch から直接呼ぶときも同じサーバーに向ける。
+    static func saveApiBaseUrl(_ url: String) {
+        AppGroup.userDefaults.set(url, forKey: Key.apiBaseUrl)
+    }
+
+    static func loadApiBaseUrl() -> String? {
+        AppGroup.userDefaults.string(forKey: Key.apiBaseUrl)
     }
 
     static func saveTodayStep(_ step: TodayStep?) {

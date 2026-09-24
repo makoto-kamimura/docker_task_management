@@ -1,10 +1,14 @@
 import SwiftUI
 
 @main
-struct watchEntry: App {
+struct LifeCompassWatchApp: App {
+    init() {
+        NotificationController.shared.activate()
+    }
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TodayStepView()
         }
     }
 }

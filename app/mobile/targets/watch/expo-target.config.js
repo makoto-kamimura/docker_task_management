@@ -6,7 +6,7 @@ module.exports = (config) => ({
   icon: "../../assets/icon.png",
   colors: { $accent: "#aa3bff" },
   deploymentTarget: "10.0",
-  frameworks: ["SwiftUI", "WatchConnectivity", "WidgetKit"],
+  frameworks: ["SwiftUI", "WatchConnectivity", "WidgetKit", "UserNotifications"],
   entitlements: {
     "com.apple.security.application-groups": ["group.com.lifecompass.mobile"],
   },

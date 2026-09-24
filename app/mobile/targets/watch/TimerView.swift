@@ -1,77 +1,89 @@
+import Combine
 import SwiftUI
 import WatchKit
 
-/// T-305: カウントダウンタイマー。「終了する」で早期終了でき、その場合の
+/// カウントダウンタイマー。「終了する」で早期終了でき、その場合の
 /// 経過秒数（elapsed_seconds）を結果送信に使う（「少しだけ」対応）。
 struct TimerView: View {
     let step: TodayStep
+    /// 結果を記録し終えたとき。
+    let onRecorded: () -> Void
 
     @State private var startedAt = Date()
-    @State private var remainingSeconds: Int
-    @State private var isFinished = false
-    @State private var timer: Timer?
+    /// 「終了する」を押した時刻。
+    @State private var stoppedAt: Date?
+    @State private var now = Date()
+    @State private var hasPlayedFinish = false
     @StateObject private var runtimeSession = ExtendedRuntimeSessionController()
 
-    private let totalSeconds: Int
+    private let ticker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
-    init(step: TodayStep) {
+    init(step: TodayStep, onRecorded: @escaping () -> Void) {
         self.step = step
-        let total = max(step.durationMinutes, 1) * 60
-        totalSeconds = total
-        _remainingSeconds = State(initialValue: total)
+        self.onRecorded = onRecorded
     }
 
-    private var elapsedSeconds: Int { totalSeconds - remainingSeconds }
+    private var totalSeconds: Int {
+        max(step.durationMinutes, 1) * 60
+    }
+
+    /// 開始からの経過秒。Web / iPhone（@shared/timer の timerSnapshot）と同じく、1 秒ごとの減算ではなく
+    /// 開始時刻との差で求めるので、手首を下ろしている間に tick が間引かれてもずれない。
+    private var elapsedSeconds: Int {
+        let until = stoppedAt ?? now
+        return min(totalSeconds, max(0, Int(until.timeIntervalSince(startedAt))))
+    }
+
+    private var isFinished: Bool {
+        stoppedAt != nil || elapsedSeconds >= totalSeconds
+    }
 
     var body: some View {
-        VStack(spacing: 12) {
-            Text(step.title)
-                .font(.headline)
-                .multilineTextAlignment(.center)
+        ScrollView {
+            VStack(spacing: 12) {
+                Text(step.title)
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
 
-            if isFinished {
-                ResultView(step: step, startedAt: startedAt, elapsedSeconds: elapsedSeconds)
-            } else {
-                Text(formatted(remainingSeconds))
-                    .font(.system(size: 34, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
+                if isFinished {
+                    ResultView(step: step, startedAt: startedAt, elapsedSeconds: elapsedSeconds, onRecorded: onRecorded)
+                } else {
+                    Text(formatted(totalSeconds - elapsedSeconds))
+                        .font(.system(size: 34, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
 
-                Button("終了する") {
-                    finish()
+                    Button(Copy.timerStop) {
+                        stoppedAt = Date()
+                        playFinish()
+                    }
+                    .buttonStyle(.bordered)
                 }
-                .buttonStyle(.bordered)
             }
+            .padding()
         }
-        .padding()
         .onAppear {
             runtimeSession.start()
-            startTicking()
         }
         .onDisappear {
-            timer?.invalidate()
             runtimeSession.stop()
         }
-    }
-
-    private func startTicking() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            if remainingSeconds <= 1 {
-                finish()
-            } else {
-                remainingSeconds -= 1
+        .onReceive(ticker) { date in
+            guard !isFinished else { return }
+            now = date
+            if isFinished {
+                playFinish()
             }
         }
     }
 
-    private func finish() {
-        guard !isFinished else { return }
-        timer?.invalidate()
-        remainingSeconds = max(remainingSeconds, 0)
-        isFinished = true
+    private func playFinish() {
+        guard !hasPlayedFinish else { return }
+        hasPlayedFinish = true
+        runtimeSession.stop()
         WKInterfaceDevice.current().play(.success)
     }
 
+    /// 残り時間の表示（MM:SS）。Web / iPhone の formatClock と同じ形。
     private func formatted(_ seconds: Int) -> String {
         String(format: "%02d:%02d", seconds / 60, seconds % 60)
     }

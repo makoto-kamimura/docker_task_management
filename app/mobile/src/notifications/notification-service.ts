@@ -1,7 +1,11 @@
 import { Platform } from 'react-native'
 import * as Notifications from 'expo-notifications'
-import { registerDeviceToken } from '../api/devices'
+import { registerDeviceToken } from '@shared/api'
 
+/**
+ * API（App\Services\Push\ApnsSender）が付けるカテゴリとアクション。Apple Watch
+ * （targets/watch/NotificationController.swift）も同じ識別子を登録する。
+ */
 export const TODAY_COMPASS_CATEGORY = 'TODAY_COMPASS'
 export const START_ACTION = 'START'
 export const LATER_ACTION = 'LATER'
@@ -61,8 +65,9 @@ export async function requestPermissionsAndRegisterDevice(): Promise<boolean> {
 
 /**
  * 通知タップ/アクション押下時のディープリンク先を返す。
- * [開始] または通知本体タップ時は「今日のコンパス」画面へ（自動でタイマー開始）、[あとで] は何もしない。
- * タイマーには「今日の一歩」タスクの情報が必要なため、今日のコンパス画面を経由してから開始する。
+ * [開始] または通知本体タップ時は「今日の一歩」画面へ、[あとで] は何もしない。
+ * 今日の一歩が実施できるタスクならそのままタイマーを開き、二択・細分化のときはその画面にとどまる
+ * （いずれの場合も隙間時間 15 分の計測はそこから始まる）。
  */
 export function resolveDeepLinkFromResponse(
   response: Notifications.NotificationResponse,

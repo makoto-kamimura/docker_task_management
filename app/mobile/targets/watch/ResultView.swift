@@ -1,66 +1,57 @@
 import SwiftUI
 
-/// T-305: 終了時の結果ワンタップ入力（完了/少しだけ/また今度）。POST /task-logs (source=watch)。
+/// 終了時の結果ワンタップ入力（完了/少しだけ/また今度）。POST /task-logs (source=watch)。
 struct ResultView: View {
     let step: TodayStep
     let startedAt: Date
     let elapsedSeconds: Int
+    let onRecorded: () -> Void
 
     @State private var isSubmitting = false
-    @State private var submittedResult: String?
     @State private var errorMessage: String?
 
-    private let options: [(result: String, symbol: String, caption: String)] = [
-        ("done", "checkmark.circle.fill", "完了"),
-        ("partial", "circle.lefthalf.filled", "少しだけ"),
-        ("skipped", "xmark.circle.fill", "また今度"),
-    ]
+    init(step: TodayStep, startedAt: Date, elapsedSeconds: Int, onRecorded: @escaping () -> Void) {
+        self.step = step
+        self.startedAt = startedAt
+        self.elapsedSeconds = elapsedSeconds
+        self.onRecorded = onRecorded
+    }
 
     var body: some View {
         VStack(spacing: 10) {
-            Text("👏 お疲れ様！ できた？")
+            Label(Copy.timerPrompt, systemImage: Symbols.prompt)
                 .font(.subheadline)
                 .multilineTextAlignment(.center)
 
-            if let submittedResult, let selected = options.first(where: { $0.result == submittedResult }) {
-                Label(selected.caption, systemImage: selected.symbol)
-                    .font(.headline)
-            } else {
-                HStack(spacing: 12) {
-                    ForEach(options, id: \.result) { option in
-                        resultButton(result: option.result, symbol: option.symbol, caption: option.caption)
+            HStack(spacing: 12) {
+                ForEach(TaskLogResult.allCases) { result in
+                    Button {
+                        submit(result)
+                    } label: {
+                        VStack(spacing: 2) {
+                            Image(systemName: result.symbol).font(.title2)
+                            Text(result.label).font(.system(size: 10))
+                        }
                     }
-                }
-
-                if isSubmitting {
-                    ProgressView()
-                }
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.caption2)
-                        .foregroundStyle(.red)
+                    .disabled(isSubmitting)
                 }
             }
-        }
-        .padding()
-    }
 
-    private func resultButton(result: String, symbol: String, caption: String) -> some View {
-        Button {
-            submit(result: result)
-        } label: {
-            VStack(spacing: 2) {
-                Image(systemName: symbol).font(.title2)
-                Text(caption).font(.system(size: 10))
+            if isSubmitting {
+                ProgressView()
+            }
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.caption2)
+                    .foregroundStyle(.red)
             }
         }
-        .disabled(isSubmitting || submittedResult != nil)
     }
 
-    private func submit(result: String) {
+    private func submit(_ result: TaskLogResult) {
         isSubmitting = true
         errorMessage = nil
-        Task {
+        Task { @MainActor in
             do {
                 try await APIClient.submitTaskLog(
                     taskId: step.taskId,
@@ -68,15 +59,11 @@ struct ResultView: View {
                     result: result,
                     elapsedSeconds: elapsedSeconds
                 )
-                await MainActor.run {
-                    submittedResult = result
-                    isSubmitting = false
-                }
+                isSubmitting = false
+                onRecorded()
             } catch {
-                await MainActor.run {
-                    errorMessage = "送信に失敗しました"
-                    isSubmitting = false
-                }
+                errorMessage = Copy.submitFailed
+                isSubmitting = false
             }
         }
     }

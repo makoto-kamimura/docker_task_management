@@ -1,10 +1,10 @@
 import WidgetKit
 import SwiftUI
 
-/// T-306: 「今日の一歩」タイトルを表示するコンプリケーション。
+/// 「今日の一歩」タイトルを表示するコンプリケーション。
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> TodayStepEntry {
-        TodayStepEntry(date: Date(), title: "今日の一歩")
+        TodayStepEntry(date: Date(), title: Copy.todayTitle)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (TodayStepEntry) -> Void) {
@@ -18,8 +18,7 @@ struct Provider: TimelineProvider {
     }
 
     private func currentEntry() -> TodayStepEntry {
-        let title = SharedStore.loadTodayStep()?.title ?? "今日の一歩は未設定"
-        return TodayStepEntry(date: Date(), title: title)
+        TodayStepEntry(date: Date(), title: SharedStore.loadTodayStep()?.title ?? Copy.widgetEmpty)
     }
 }
 
@@ -38,7 +37,7 @@ struct watchWidgetEntryView: View {
             ZStack {
                 AccessoryWidgetBackground()
                 VStack(spacing: 0) {
-                    Text("🧭")
+                    Image(systemName: Symbols.compass)
                         .font(.title3)
                     Text(entry.title)
                         .font(.system(size: 9))
@@ -47,7 +46,7 @@ struct watchWidgetEntryView: View {
             }
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 2) {
-                Text("🧭 今日の一歩")
+                Label(Copy.todayTitle, systemImage: Symbols.compass)
                     .font(.caption2)
                     .widgetAccentable()
                 Text(entry.title)
@@ -55,7 +54,7 @@ struct watchWidgetEntryView: View {
                     .lineLimit(2)
             }
         case .accessoryInline:
-            Text("🧭 \(entry.title)")
+            Label(entry.title, systemImage: Symbols.compass)
         default:
             Text(entry.title)
         }
@@ -70,8 +69,8 @@ struct watchWidget: Widget {
             watchWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("今日の一歩")
-        .description("今日のおすすめタスクを文字盤に表示します。")
+        .configurationDisplayName(Copy.todayTitle)
+        .description(Copy.widgetDescription)
         .supportedFamilies([
             .accessoryCircular,
             .accessoryRectangular,
