@@ -12,10 +12,14 @@ use Illuminate\Support\Facades\Gate;
 
 class TaskController extends Controller
 {
+    /**
+     * デフォルトはルート（やりたいこと）のみ。?scope=all でサブタスクを含む全件を返す。
+     */
     public function index(Request $request)
     {
         $tasks = $request->user()->tasks()
             ->where('status', 'active')
+            ->when($request->query('scope') !== 'all', fn ($query) => $query->whereNull('parent_id'))
             ->orderByDesc('rating')
             ->get();
 
@@ -26,6 +30,7 @@ class TaskController extends Controller
     {
         $task = $request->user()->tasks()->create([
             'title' => $request->validated('title'),
+            'parent_id' => $request->validated('parent_id'),
         ])->refresh();
 
         return TaskResource::make($task)->response()->setStatusCode(201);

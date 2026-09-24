@@ -19,12 +19,12 @@ class StoreComparisonRequest extends FormRequest
                 'required',
                 'integer',
                 'different:loser_task_id',
-                Rule::exists('tasks', 'id')->where('user_id', $this->user()->id)->where('status', 'active'),
+                Rule::exists('tasks', 'id')->where('user_id', $this->user()->id)->where('status', 'active')->whereNull('parent_id'),
             ],
             'loser_task_id' => [
                 'required',
                 'integer',
-                Rule::exists('tasks', 'id')->where('user_id', $this->user()->id)->where('status', 'active'),
+                Rule::exists('tasks', 'id')->where('user_id', $this->user()->id)->where('status', 'active')->whereNull('parent_id'),
             ],
         ];
     }

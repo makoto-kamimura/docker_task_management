@@ -19,6 +19,7 @@ class DashboardService
             'today_recommendation' => $this->recommendationScoreService->recommend($user),
             'top_tasks' => $user->tasks()
                 ->where('status', 'active')
+                ->whereNull('parent_id')
                 ->orderByDesc('rating')
                 ->limit(10)
                 ->get(),

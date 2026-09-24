@@ -84,6 +84,18 @@ class TaskCrudTest extends TestCase
         $this->assertDatabaseHas('tasks', ['id' => $task->id, 'deadline_type' => 'today']);
     }
 
+    public function test_update_marks_task_as_needs_breakdown(): void
+    {
+        $user = User::factory()->create();
+        $task = Task::factory()->for($user)->create();
+
+        $response = $this->withHeaders($this->authHeader($user))
+            ->patchJson("/api/v1/tasks/{$task->id}", ['needs_breakdown' => true]);
+
+        $response->assertOk()->assertJsonPath('data.needs_breakdown', true);
+        $this->assertDatabaseHas('tasks', ['id' => $task->id, 'needs_breakdown' => true]);
+    }
+
     public function test_update_forbidden_for_other_users_task(): void
     {
         $owner = User::factory()->create();

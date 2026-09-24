@@ -39,6 +39,33 @@ class ComparisonFlowTest extends TestCase
             ->assertJsonStructure(['data' => ['left' => ['id', 'title'], 'right' => ['id', 'title']]]);
     }
 
+    public function test_next_excludes_subtasks(): void
+    {
+        $user = User::factory()->create();
+        $root = Task::factory()->for($user)->create();
+        Task::factory(2)->for($user)->create(['parent_id' => $root->id]);
+
+        $response = $this->withHeaders($this->authHeader($user))->getJson('/api/v1/comparisons/next');
+
+        $response->assertOk()->assertJson(['data' => null]);
+    }
+
+    public function test_store_rejects_subtask(): void
+    {
+        $user = User::factory()->create();
+        $root = Task::factory()->for($user)->create();
+        $other = Task::factory()->for($user)->create();
+        $subtask = Task::factory()->for($user)->create(['parent_id' => $root->id]);
+
+        $response = $this->withHeaders($this->authHeader($user))
+            ->postJson('/api/v1/comparisons', [
+                'winner_task_id' => $subtask->id,
+                'loser_task_id' => $other->id,
+            ]);
+
+        $response->assertUnprocessable()->assertJsonValidationErrors('winner_task_id');
+    }
+
     public function test_store_updates_ratings_and_records_history(): void
     {
         $user = User::factory()->create();

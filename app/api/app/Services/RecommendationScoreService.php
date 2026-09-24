@@ -23,19 +23,23 @@ class RecommendationScoreService
     ];
 
     /**
-     * 今日の一歩を1件返す。activeタスクが0〜1件の場合は null。
+     * 今日の一歩を1件返す。
+     * スコアリングはルート（やりたいこと）単位で行い、選ばれたルートの
+     * ツリーをたどって葉（Leaf Node）を「今日の一歩」として返す。
+     * 分解待ち（needs_breakdown）の葉しかないルートはスキップし、次点のルートから選ぶ。
      */
     public function recommend(User $user): ?Task
     {
         $tasks = $user->tasks()->where('status', 'active')->get();
+        $roots = $tasks->whereNull('parent_id')->values();
 
-        if ($tasks->count() < 2) {
-            return $tasks->first();
+        if ($roots->isEmpty()) {
+            return null;
         }
 
-        [$minRating, $maxRating] = $this->ratingRange($tasks);
+        [$minRating, $maxRating] = $this->ratingRange($roots);
 
-        return $tasks
+        $orderedRoots = $roots
             ->map(fn (Task $task) => [
                 'task' => $task,
                 'score' => $this->score($task, $minRating, $maxRating),
@@ -47,7 +51,54 @@ class RecommendationScoreService
 
                 return $b['score'] <=> $a['score'];
             })
-            ->first()['task'];
+            ->map(fn (array $entry) => $entry['task']);
+
+        foreach ($orderedRoots as $root) {
+            $step = $this->todayStep($root, $tasks);
+
+            if ($step !== null) {
+                return $step;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * ルート配下の葉から「今日の一歩」を1件選ぶ。
+     * 分解待ち（needs_breakdown）の葉は候補から外す。
+     * 未実施（last_done_at が null）を優先し、次に実施が古い順。同点は id 昇順。
+     *
+     * @param  Collection<int, Task>  $tasks  ユーザーの active タスク全件
+     */
+    private function todayStep(Task $root, Collection $tasks): ?Task
+    {
+        $childrenByParent = $tasks->whereNotNull('parent_id')->groupBy('parent_id');
+
+        $leaves = collect();
+        $frontier = [$root];
+
+        while ($frontier !== []) {
+            $node = array_pop($frontier);
+            $children = $childrenByParent->get($node->id, collect());
+
+            if ($children->isEmpty()) {
+                $leaves->push($node);
+            } else {
+                foreach ($children as $child) {
+                    $frontier[] = $child;
+                }
+            }
+        }
+
+        return $leaves
+            ->reject(fn (Task $leaf) => $leaf->needs_breakdown)
+            ->sortBy([
+                fn (Task $a, Task $b) => ($a->last_done_at === null ? 0 : 1) <=> ($b->last_done_at === null ? 0 : 1),
+                fn (Task $a, Task $b) => ($a->last_done_at?->getTimestamp() ?? 0) <=> ($b->last_done_at?->getTimestamp() ?? 0),
+                fn (Task $a, Task $b) => $a->id <=> $b->id,
+            ])
+            ->first();
     }
 
     private function score(Task $task, float $minRating, float $maxRating): float
