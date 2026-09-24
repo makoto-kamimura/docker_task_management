@@ -28,8 +28,6 @@ class ApnsSender implements PushNotificationSenderInterface
             ? 'https://api.push.apple.com'
             : 'https://api.sandbox.push.apple.com';
 
-        $task = $notification->task;
-
         $response = Http::withToken($jwt)
             ->withHeaders([
                 'apns-topic' => $bundleId,
@@ -39,8 +37,8 @@ class ApnsSender implements PushNotificationSenderInterface
             ->post("{$host}/3/device/{$deviceToken->token}", [
                 'aps' => [
                     'alert' => [
-                        'title' => '🧭 今日の一歩',
-                        'body' => $task ? "{$task->title} を始めませんか？" : '今日の一歩を確認しましょう',
+                        'title' => PushMessage::TITLE,
+                        'body' => PushMessage::body($notification),
                     ],
                     'category' => 'TODAY_COMPASS',
                     'sound' => 'default',

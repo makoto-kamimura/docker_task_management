@@ -4,22 +4,25 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TaskResource;
-use App\Services\RecommendationScoreService;
+use App\Services\TodayStepService;
 use Illuminate\Http\Request;
 
 class CompassController extends Controller
 {
     public function __construct(
-        private readonly RecommendationScoreService $recommendationScoreService,
+        private readonly TodayStepService $todayStepService,
     ) {
     }
 
     public function today(Request $request)
     {
-        $task = $this->recommendationScoreService->recommend($request->user());
+        $step = $this->todayStepService->resolve($request->user());
 
         return response()->json([
-            'data' => $task ? TaskResource::make($task) : null,
+            // 実施できる一歩が無いときに何をするか（task / compare / breakdown / empty）。
+            'kind' => $step->kind->value,
+            'data' => $step->task ? TaskResource::make($step->task) : null,
+            'path' => $step->path(),
         ]);
     }
 }

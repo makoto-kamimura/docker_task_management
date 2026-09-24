@@ -30,15 +30,13 @@ class FcmSender implements PushNotificationSenderInterface
             return false;
         }
 
-        $task = $notification->task;
-
         $response = Http::withToken($accessToken)
             ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
                 'message' => [
                     'token' => $deviceToken->token,
                     'notification' => [
-                        'title' => '🧭 今日の一歩',
-                        'body' => $task ? "{$task->title} を始めませんか？" : '今日の一歩を確認しましょう',
+                        'title' => PushMessage::TITLE,
+                        'body' => PushMessage::body($notification),
                     ],
                 ],
             ]);

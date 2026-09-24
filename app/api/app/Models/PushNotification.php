@@ -12,6 +12,8 @@ class PushNotification extends Model
     protected $fillable = [
         'user_id',
         'task_id',
+        // 提案した今日の一歩の種類（task / compare / breakdown）。App\Services\TodayStepKind と同じ値。
+        'kind',
         'scheduled_at',
         'delivered_at',
     ];

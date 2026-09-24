@@ -18,6 +18,7 @@ class ComparisonPairSelector
     {
         $tasks = $user->tasks()
             ->where('status', 'active')
+            ->whereNull('parent_id')
             ->withCount([
                 'wonComparisons as won_count',
                 'lostComparisons as lost_count',
@@ -36,6 +37,37 @@ class ComparisonPairSelector
 
         return $this->closestPairExcluding($pool, $excludePairs)
             ?? $this->closestPairExcluding($tasks, $excludePairs);
+    }
+
+    /**
+     * やりたいことの優先度付けが確定したか。
+     * active なルートの全ペアを一度でも比べていれば確定とみなす（Elo は 1 回の比較ごとに更新されるため、
+     * 全ペアを 1 周した時点で順位は付いている）。ルートが 1 件以下なら比べようがないので確定扱い。
+     */
+    public function isRankingSettled(User $user): bool
+    {
+        $rootIds = $user->tasks()
+            ->where('status', 'active')
+            ->whereNull('parent_id')
+            ->pluck('id');
+
+        if ($rootIds->count() < 2) {
+            return true;
+        }
+
+        $comparedPairs = $user->comparisons()
+            ->whereIn('winner_task_id', $rootIds)
+            ->whereIn('loser_task_id', $rootIds)
+            ->get(['winner_task_id', 'loser_task_id'])
+            ->map(fn ($comparison) => $comparison->winner_task_id < $comparison->loser_task_id
+                ? "{$comparison->winner_task_id}-{$comparison->loser_task_id}"
+                : "{$comparison->loser_task_id}-{$comparison->winner_task_id}")
+            ->unique()
+            ->count();
+
+        $totalPairs = $rootIds->count() * ($rootIds->count() - 1) / 2;
+
+        return $comparedPairs >= $totalPairs;
     }
 
     /**
