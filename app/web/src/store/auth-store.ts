@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { queryClient } from '../lib/query-client'
 
 const TOKEN_STORAGE_KEY = 'life-compass-token'
 
@@ -16,6 +17,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   clearToken: () => {
     localStorage.removeItem(TOKEN_STORAGE_KEY)
+    // 別のアカウントでログインし直したときに、前のユーザーのデータが一瞬でも見えないようにする。
+    queryClient.clear()
     set({ token: null })
   },
 }))

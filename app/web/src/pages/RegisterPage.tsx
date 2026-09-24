@@ -1,8 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { register } from '../api/auth'
+import { Compass } from 'lucide-react'
+import { register } from '@shared/api'
+import { ApiError } from '@shared/api-client'
+import { AUTH, COMMON } from '@shared/copy'
 import { useAuthStore } from '../store/auth-store'
-import { ApiError } from '../lib/api-client'
+import { PageTitle } from '../components/PageTitle'
 
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -13,7 +16,7 @@ export function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [submitting, setSubmitting] = useState(false)
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
     setErrors({})
     setSubmitting(true)
@@ -22,32 +25,28 @@ export function RegisterPage() {
       setToken(token)
       navigate('/today')
     } catch (err) {
-      if (err instanceof ApiError && err.errors) {
-        setErrors(err.errors)
-      } else {
-        setErrors({ general: ['予期せぬエラーが発生しました。'] })
-      }
+      setErrors(err instanceof ApiError && err.errors ? err.errors : { general: [COMMON.unexpectedError] })
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="page">
-      <h1>🧭 新規登録</h1>
+    <div className="page page-narrow">
+      <PageTitle icon={Compass}>{AUTH.registerTitle}</PageTitle>
       <form className="card" onSubmit={handleSubmit}>
         <div className="field">
-          <label htmlFor="name">名前</label>
+          <label htmlFor="name">{AUTH.name}</label>
           <input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
           {errors.name && <p className="error-text">{errors.name[0]}</p>}
         </div>
         <div className="field">
-          <label htmlFor="email">メールアドレス</label>
+          <label htmlFor="email">{AUTH.email}</label>
           <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           {errors.email && <p className="error-text">{errors.email[0]}</p>}
         </div>
         <div className="field">
-          <label htmlFor="password">パスワード（8文字以上）</label>
+          <label htmlFor="password">{AUTH.newPassword}</label>
           <input
             id="password"
             type="password"
@@ -60,11 +59,11 @@ export function RegisterPage() {
         </div>
         {errors.general && <p className="error-text">{errors.general[0]}</p>}
         <button className="button" type="submit" disabled={submitting}>
-          登録する
+          {AUTH.registerSubmit}
         </button>
       </form>
-      <p style={{ marginTop: 16 }}>
-        すでにアカウントをお持ちの方は <Link to="/login">ログイン</Link>
+      <p className="auth-switch">
+        <Link to="/login">{AUTH.toLogin}</Link>
       </p>
     </div>
   )

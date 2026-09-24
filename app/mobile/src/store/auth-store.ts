@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import * as SecureStore from 'expo-secure-store'
+import { queryClient } from '../lib/query-client'
 import { syncAuthToWatch } from '../watch/sync'
 
 const TOKEN_STORAGE_KEY = 'life-compass-token'
@@ -27,6 +28,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   clearToken: async () => {
     await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY)
+    // 別のアカウントでログインし直したときに、前のユーザーのデータが一瞬でも見えないようにする。
+    queryClient.clear()
     set({ token: null })
     syncAuthToWatch(null)
   },

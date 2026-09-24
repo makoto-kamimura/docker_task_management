@@ -1,26 +1,24 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createTask } from '../api/tasks'
-import { ApiError } from '../lib/api-client'
+import { createTask } from '@shared/api'
+import { errorMessage } from '@shared/api-client'
+import { TASKS } from '@shared/copy'
+import { invalidate, invalidates } from '@shared/queries'
 
+/** やりたいこと（ルート）の追加フォーム。登録に要るのはタイトルだけ。 */
 export function TaskForm() {
   const queryClient = useQueryClient()
   const [title, setTitle] = useState('')
-  const [error, setError] = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: createTask,
     onSuccess: () => {
       setTitle('')
-      setError(null)
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
-    },
-    onError: (err) => {
-      setError(err instanceof ApiError ? err.message : '登録に失敗しました。')
+      invalidate(queryClient, invalidates.task)
     },
   })
 
-  function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
     if (!title.trim()) return
     mutation.mutate({ title: title.trim() })
@@ -29,18 +27,18 @@ export function TaskForm() {
   return (
     <form className="card" onSubmit={handleSubmit}>
       <div className="field">
-        <label htmlFor="title">やりたいこと（タイトルのみ）</label>
+        <label htmlFor="title">{TASKS.inputLabel}</label>
         <input
           id="title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="例: Reactを勉強する"
+          placeholder={TASKS.placeholder}
           required
         />
       </div>
-      {error && <p className="error-text">{error}</p>}
+      {mutation.isError && <p className="error-text">{errorMessage(mutation.error, TASKS.createFailed)}</p>}
       <button className="button" type="submit" disabled={mutation.isPending}>
-        追加する
+        {TASKS.submit}
       </button>
     </form>
   )

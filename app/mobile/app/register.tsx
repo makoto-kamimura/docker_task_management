@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { Link, useRouter } from 'expo-router'
-import { register } from '../src/api/auth'
+import { register } from '@shared/api'
+import { ApiError } from '@shared/api-client'
+import { AUTH, COMMON } from '@shared/copy'
 import { useAuthStore } from '../src/store/auth-store'
-import { ApiError } from '../src/lib/api-client'
-import { colors } from '../src/theme'
 import { requestPermissionsAndRegisterDevice } from '../src/notifications/notification-service'
+import { IconText } from '../src/components/IconText'
+import { ErrorText, Label, PrimaryButton, Screen, TextField } from '../src/components/ui'
+import { colors } from '../src/theme'
 
 export default function RegisterScreen() {
   const router = useRouter()
@@ -25,78 +28,55 @@ export default function RegisterScreen() {
       requestPermissionsAndRegisterDevice().catch(() => {})
       router.replace('/(tabs)/today')
     } catch (err) {
-      if (err instanceof ApiError && err.errors) {
-        setErrors(err.errors)
-      } else {
-        setErrors({ general: ['予期せぬエラーが発生しました。'] })
-      }
+      setErrors(err instanceof ApiError && err.errors ? err.errors : { general: [COMMON.unexpectedError] })
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🧭 新規登録</Text>
+    <Screen>
+      <IconText icon="compass-outline" color={colors.text} size={26} textStyle={styles.titleText}>
+        {AUTH.registerTitle}
+      </IconText>
 
-      <Text style={styles.label}>名前</Text>
-      <TextInput style={styles.input} value={name} onChangeText={setName} testID="register-name" />
-      {errors.name && <Text style={styles.error}>{errors.name[0]}</Text>}
+      <Label>{AUTH.name}</Label>
+      <TextField value={name} onChangeText={setName} testID="register-name" />
+      <ErrorText>{errors.name?.[0]}</ErrorText>
 
-      <Text style={styles.label}>メールアドレス</Text>
-      <TextInput
-        style={styles.input}
+      <Label>{AUTH.email}</Label>
+      <TextField
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
         testID="register-email"
       />
-      {errors.email && <Text style={styles.error}>{errors.email[0]}</Text>}
+      <ErrorText>{errors.email?.[0]}</ErrorText>
 
-      <Text style={styles.label}>パスワード（8文字以上）</Text>
-      <TextInput
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        testID="register-password"
+      <Label>{AUTH.newPassword}</Label>
+      <TextField value={password} onChangeText={setPassword} secureTextEntry testID="register-password" />
+      <ErrorText>{errors.password?.[0]}</ErrorText>
+
+      <ErrorText>{errors.general?.[0]}</ErrorText>
+
+      <PrimaryButton
+        title={AUTH.registerSubmit}
+        onPress={handleSubmit}
+        disabled={submitting}
+        testID="register-submit"
+        style={styles.submit}
       />
-      {errors.password && <Text style={styles.error}>{errors.password[0]}</Text>}
-
-      {errors.general && <Text style={styles.error}>{errors.general[0]}</Text>}
-
-      <Pressable style={styles.button} onPress={handleSubmit} disabled={submitting} testID="register-submit">
-        <Text style={styles.buttonText}>登録する</Text>
-      </Pressable>
 
       <Link href="/login" style={styles.link}>
-        すでにアカウントをお持ちの方はログイン
+        {AUTH.toLogin}
       </Link>
-    </View>
+    </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: colors.background },
-  title: { fontSize: 28, fontWeight: '600', marginBottom: 24, color: colors.text },
-  label: { fontSize: 14, color: colors.textMuted, marginBottom: 6, marginTop: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: colors.text,
-  },
-  error: { color: colors.danger, marginTop: 4 },
-  button: {
-    backgroundColor: colors.accent,
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  titleText: { fontSize: 28, fontWeight: '600' },
+  submit: { marginTop: 24 },
   link: { marginTop: 16, color: colors.accent, textAlign: 'center' },
 })

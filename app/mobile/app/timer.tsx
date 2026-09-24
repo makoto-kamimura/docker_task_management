@@ -1,154 +1,117 @@
 import { useEffect, useState } from 'react'
-import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'expo-router'
+import { Redirect } from 'expo-router'
+import type { Ionicons } from '@expo/vector-icons'
+import { createTaskLog } from '@shared/api'
+import { TIMER } from '@shared/copy'
+import { invalidate, invalidates } from '@shared/queries'
+import { TASK_LOG_RESULTS, formatClock, timerSnapshot } from '@shared/timer'
+import type { TaskLogResult } from '@shared/types'
 import { useTimerStore } from '../src/store/timer-store'
-import { createTaskLog, type TaskLogResult } from '../src/api/taskLogs'
+import { IconText } from '../src/components/IconText'
+import { Card, ErrorText, PrimaryButton, Screen, SecondaryButton } from '../src/components/ui'
 import { colors } from '../src/theme'
 
-function formatTime(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60)
-    .toString()
-    .padStart(2, '0')
-  const seconds = Math.floor(totalSeconds % 60)
-    .toString()
-    .padStart(2, '0')
-  return `${minutes}:${seconds}`
+/** Web（lucide）と Apple Watch（SF Symbols）と同じ意味の絵柄。 */
+const RESULT_ICONS: Record<TaskLogResult, keyof typeof Ionicons.glyphMap> = {
+  done: 'checkmark-circle-outline',
+  partial: 'time-outline',
+  skipped: 'close-circle-outline',
 }
 
 export default function TimerScreen() {
-  const router = useRouter()
   const queryClient = useQueryClient()
-  const { task, startedAt, clear } = useTimerStore()
-  const totalSeconds = (task?.durationMinutes ?? 0) * 60
-  const [remaining, setRemaining] = useState(totalSeconds)
-  const [finished, setFinished] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+  const { task, startedAt, stoppedAt, stop, clear } = useTimerStore()
+  const [now, setNow] = useState(() => Date.now())
 
+  const snapshot = task && startedAt ? timerSnapshot(startedAt, task.durationMinutes, stoppedAt, now) : null
+  const isFinished = snapshot?.isFinished ?? false
+
+  // 残り時間は開始時刻との差で毎回求めるので、アプリがバックグラウンドに回っても狂わない。
   useEffect(() => {
-    if (!task || finished) return
-    const interval = setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval)
-          setFinished(true)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
+    if (isFinished) return
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+
     return () => clearInterval(interval)
-  }, [task, finished])
+  }, [isFinished])
 
   const mutation = useMutation({
     mutationFn: createTaskLog,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      queryClient.invalidateQueries({ queryKey: ['compass-today'] })
-      setSubmitted(true)
+      invalidate(queryClient, invalidates.taskLog)
+      // store を空にすると下の Redirect で今日の一歩へ戻る。Web / Apple Watch も結果入力のあとは今日の一歩に戻る。
       clear()
-      router.replace('/(tabs)/today')
     },
   })
 
-  useEffect(() => {
-    if ((!task || !startedAt) && !submitted) {
-      router.replace('/(tabs)/today')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [task, startedAt, submitted])
-
-  if (!task || !startedAt) {
-    return null
+  if (!task || !startedAt || !snapshot) {
+    return <Redirect href="/(tabs)/today" />
   }
 
-  const elapsedSeconds = totalSeconds - remaining
-
   function submitResult(result: TaskLogResult) {
-    if (!task || !startedAt) return
+    if (!task || !startedAt || !snapshot) return
     mutation.mutate({
       task_id: task.id,
       started_at: startedAt,
       result,
-      elapsed_seconds: elapsedSeconds,
+      elapsed_seconds: snapshot.elapsedSeconds,
       source: 'mobile',
     })
   }
 
   return (
-    <View style={styles.container}>
+    <Screen>
       <Text style={styles.title}>{task.title}</Text>
 
-      {!finished && (
-        <View style={styles.card}>
-          <Text style={styles.time}>{formatTime(remaining)}</Text>
-          <Pressable style={styles.secondaryButton} onPress={() => setFinished(true)} testID="timer-stop">
-            <Text style={styles.secondaryButtonText}>終了する</Text>
-          </Pressable>
-        </View>
+      {!isFinished && (
+        <Card style={styles.card}>
+          <Text style={styles.time}>{formatClock(snapshot.remainingSeconds)}</Text>
+          <SecondaryButton title={TIMER.stop} onPress={stop} testID="timer-stop" />
+        </Card>
       )}
 
-      {finished && (
-        <View style={styles.card}>
-          <Text style={styles.finishedText}>👏 お疲れ様！ できた？</Text>
+      {isFinished && (
+        <Card style={styles.card}>
+          <IconText
+            icon="sparkles-outline"
+            color={colors.text}
+            size={18}
+            textStyle={styles.prompt}
+            containerStyle={styles.promptRow}
+          >
+            {TIMER.prompt}
+          </IconText>
           <View style={styles.resultRow}>
-            <Pressable
-              style={styles.primaryButton}
-              disabled={mutation.isPending}
-              onPress={() => submitResult('done')}
-              testID="timer-done"
-            >
-              <Text style={styles.buttonText}>😊 完了</Text>
-            </Pressable>
-            <Pressable
-              style={styles.secondaryButton}
-              disabled={mutation.isPending}
-              onPress={() => submitResult('partial')}
-              testID="timer-partial"
-            >
-              <Text style={styles.secondaryButtonText}>😅 少しだけ</Text>
-            </Pressable>
-            <Pressable
-              style={styles.secondaryButton}
-              disabled={mutation.isPending}
-              onPress={() => submitResult('skipped')}
-              testID="timer-skipped"
-            >
-              <Text style={styles.secondaryButtonText}>❌ また今度</Text>
-            </Pressable>
+            {TASK_LOG_RESULTS.map(({ result, label }, index) => {
+              const Button = index === 0 ? PrimaryButton : SecondaryButton
+
+              return (
+                <Button
+                  key={result}
+                  title={label}
+                  icon={RESULT_ICONS[result]}
+                  disabled={mutation.isPending}
+                  onPress={() => submitResult(result)}
+                  testID={`timer-${result}`}
+                  style={styles.resultButton}
+                />
+              )
+            })}
           </View>
-        </View>
+          <ErrorText>{mutation.isError ? TIMER.submitFailed : null}</ErrorText>
+        </Card>
       )}
-    </View>
+    </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: colors.background },
   title: { fontSize: 22, fontWeight: '600', color: colors.text, marginBottom: 16, textAlign: 'center' },
-  card: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: 24,
-    alignItems: 'center',
-  },
-  time: { fontSize: 48, color: colors.text, marginBottom: 16 },
-  finishedText: { fontSize: 18, color: colors.text, marginBottom: 16 },
-  resultRow: { flexDirection: 'row', gap: 8 },
-  primaryButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  buttonText: { color: '#fff', fontWeight: '600' },
-  secondaryButtonText: { color: colors.text, fontWeight: '600' },
+  card: { padding: 24, alignItems: 'center' },
+  time: { fontSize: 48, color: colors.text, marginBottom: 16, fontVariant: ['tabular-nums'] },
+  prompt: { fontSize: 18 },
+  promptRow: { marginBottom: 16 },
+  resultRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
+  resultButton: { paddingHorizontal: 14 },
 })

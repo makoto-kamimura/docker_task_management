@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { Link, useRouter } from 'expo-router'
-import { login } from '../src/api/auth'
+import { login } from '@shared/api'
+import { errorMessage } from '@shared/api-client'
+import { AUTH, COMMON } from '@shared/copy'
 import { useAuthStore } from '../src/store/auth-store'
-import { ApiError } from '../src/lib/api-client'
-import { colors } from '../src/theme'
 import { requestPermissionsAndRegisterDevice } from '../src/notifications/notification-service'
+import { IconText } from '../src/components/IconText'
+import { ErrorText, Label, PrimaryButton, Screen, TextField } from '../src/components/ui'
+import { colors } from '../src/theme'
 
 export default function LoginScreen() {
   const router = useRouter()
@@ -24,19 +27,20 @@ export default function LoginScreen() {
       requestPermissionsAndRegisterDevice().catch(() => {})
       router.replace('/(tabs)/today')
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : '予期せぬエラーが発生しました。')
+      setError(errorMessage(err, COMMON.unexpectedError))
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🧭 ログイン</Text>
+    <Screen>
+      <IconText icon="compass-outline" color={colors.text} size={26} textStyle={styles.titleText}>
+        {AUTH.loginTitle}
+      </IconText>
 
-      <Text style={styles.label}>メールアドレス</Text>
-      <TextInput
-        style={styles.input}
+      <Label>{AUTH.email}</Label>
+      <TextField
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -44,48 +48,28 @@ export default function LoginScreen() {
         testID="login-email"
       />
 
-      <Text style={styles.label}>パスワード</Text>
-      <TextInput
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        testID="login-password"
+      <Label>{AUTH.password}</Label>
+      <TextField value={password} onChangeText={setPassword} secureTextEntry testID="login-password" />
+
+      <ErrorText>{error}</ErrorText>
+
+      <PrimaryButton
+        title={AUTH.loginSubmit}
+        onPress={handleSubmit}
+        disabled={submitting}
+        testID="login-submit"
+        style={styles.submit}
       />
 
-      {error && <Text style={styles.error}>{error}</Text>}
-
-      <Pressable style={styles.button} onPress={handleSubmit} disabled={submitting} testID="login-submit">
-        <Text style={styles.buttonText}>ログイン</Text>
-      </Pressable>
-
       <Link href="/register" style={styles.link}>
-        アカウントをお持ちでない方は新規登録
+        {AUTH.toRegister}
       </Link>
-    </View>
+    </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: colors.background },
-  title: { fontSize: 28, fontWeight: '600', marginBottom: 24, color: colors.text },
-  label: { fontSize: 14, color: colors.textMuted, marginBottom: 6, marginTop: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: colors.text,
-  },
-  error: { color: colors.danger, marginTop: 12 },
-  button: {
-    backgroundColor: colors.accent,
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  titleText: { fontSize: 28, fontWeight: '600' },
+  submit: { marginTop: 24 },
   link: { marginTop: 16, color: colors.accent, textAlign: 'center' },
 })

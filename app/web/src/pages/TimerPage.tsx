@@ -1,108 +1,94 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
+import { Sparkles, CheckCircle2, Clock, XCircle, type LucideIcon } from 'lucide-react'
+import { createTaskLog } from '@shared/api'
+import { TIMER } from '@shared/copy'
+import { invalidate, invalidates } from '@shared/queries'
+import { TASK_LOG_RESULTS, formatClock, timerSnapshot } from '@shared/timer'
+import type { TaskLogResult } from '@shared/types'
 import { useTimerStore } from '../store/timer-store'
-import { createTaskLog, type TaskLogResult } from '../api/taskLogs'
 
-function formatTime(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60)
-    .toString()
-    .padStart(2, '0')
-  const seconds = Math.floor(totalSeconds % 60)
-    .toString()
-    .padStart(2, '0')
-  return `${minutes}:${seconds}`
+const RESULT_ICONS: Record<TaskLogResult, LucideIcon> = {
+  done: CheckCircle2,
+  partial: Clock,
+  skipped: XCircle,
 }
 
 export function TimerPage() {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { task, startedAt, clear } = useTimerStore()
-  const totalSeconds = (task?.durationMinutes ?? 0) * 60
-  const [remaining, setRemaining] = useState(totalSeconds)
-  const [finished, setFinished] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+  const { task, startedAt, stoppedAt, stop, clear } = useTimerStore()
+  const [now, setNow] = useState(() => Date.now())
+
+  const snapshot = task && startedAt ? timerSnapshot(startedAt, task.durationMinutes, stoppedAt, now) : null
+  const isFinished = snapshot?.isFinished ?? false
 
   useEffect(() => {
-    if (!task || finished) return
-    const interval = setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval)
-          setFinished(true)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
+    if (isFinished) return
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+
     return () => clearInterval(interval)
-  }, [task, finished])
+  }, [isFinished])
 
   const mutation = useMutation({
     mutationFn: createTaskLog,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      queryClient.invalidateQueries({ queryKey: ['compass-today'] })
-      setSubmitted(true)
+      invalidate(queryClient, invalidates.taskLog)
+      // store を空にすると下の Navigate で今日の一歩へ戻る。iPhone / Apple Watch も結果入力のあとは今日の一歩に戻る。
       clear()
-      navigate('/dashboard')
     },
   })
 
-  if ((!task || !startedAt) && !submitted) {
+  if (!task || !startedAt || !snapshot) {
     return <Navigate to="/today" replace />
   }
 
-  if (!task || !startedAt) {
-    return null
-  }
-
-  const elapsedSeconds = totalSeconds - remaining
-
   function submitResult(result: TaskLogResult) {
-    if (!task || !startedAt) return
+    if (!task || !startedAt || !snapshot) return
     mutation.mutate({
       task_id: task.id,
       started_at: startedAt,
       result,
-      elapsed_seconds: elapsedSeconds,
+      elapsed_seconds: snapshot.elapsedSeconds,
       source: 'web',
     })
   }
 
   return (
-    <div className="page">
+    <div className="page page-medium">
       <h1>{task.title}</h1>
-      {!finished && (
-        <div className="card" style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: 48, margin: '16px 0' }}>{formatTime(remaining)}</p>
-          <button className="button-secondary" onClick={() => setFinished(true)}>
-            終了する
+      {!isFinished && (
+        <div className="card timer-card">
+          <p className="timer-clock">{formatClock(snapshot.remainingSeconds)}</p>
+          <button className="button-secondary" onClick={stop}>
+            {TIMER.stop}
           </button>
         </div>
       )}
-      {finished && (
-        <div className="card" style={{ textAlign: 'center' }}>
-          <p>👏 お疲れ様！ できた？</p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16 }}>
-            <button className="button" disabled={mutation.isPending} onClick={() => submitResult('done')}>
-              😊 完了
-            </button>
-            <button
-              className="button-secondary"
-              disabled={mutation.isPending}
-              onClick={() => submitResult('partial')}
-            >
-              😅 少しだけ
-            </button>
-            <button
-              className="button-secondary"
-              disabled={mutation.isPending}
-              onClick={() => submitResult('skipped')}
-            >
-              ❌ また今度
-            </button>
+      {isFinished && (
+        <div className="card timer-card">
+          <p className="title-with-icon timer-prompt">
+            <Sparkles size={18} aria-hidden="true" />
+            {TIMER.prompt}
+          </p>
+          <div className="button-row button-row-center">
+            {TASK_LOG_RESULTS.map(({ result, label }, index) => {
+              const Icon = RESULT_ICONS[result]
+
+              return (
+                <button
+                  key={result}
+                  className={`${index === 0 ? 'button' : 'button-secondary'} title-with-icon`}
+                  disabled={mutation.isPending}
+                  onClick={() => submitResult(result)}
+                >
+                  <Icon size={16} aria-hidden="true" />
+                  {label}
+                </button>
+              )
+            })}
           </div>
+          {mutation.isError && <p className="error-text">{TIMER.submitFailed}</p>}
         </div>
       )}
     </div>

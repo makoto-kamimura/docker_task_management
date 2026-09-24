@@ -1,41 +1,39 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { Stack, useRouter } from 'expo-router'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import * as Notifications from 'expo-notifications'
+import { AUTH, TIMER } from '@shared/copy'
+import '../src/lib/api-client'
+import { queryClient } from '../src/lib/query-client'
 import { useAuthStore } from '../src/store/auth-store'
 import { resolveDeepLinkFromResponse, setupNotificationCategory } from '../src/notifications/notification-service'
-
-const queryClient = new QueryClient()
 
 export default function RootLayout() {
   const hydrate = useAuthStore((state) => state.hydrate)
   const router = useRouter()
-  const responseListener = useRef<Notifications.EventSubscription | null>(null)
 
   useEffect(() => {
     hydrate()
     setupNotificationCategory()
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const target = resolveDeepLinkFromResponse(response)
       if (target) {
         router.push(target)
       }
     })
 
-    return () => {
-      responseListener.current?.remove()
-    }
+    return () => subscription.remove()
   }, [hydrate, router])
 
   return (
     <QueryClientProvider client={queryClient}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
-        <Stack.Screen name="login" options={{ headerShown: true, title: 'ログイン' }} />
-        <Stack.Screen name="register" options={{ headerShown: true, title: '新規登録' }} />
+        <Stack.Screen name="login" options={{ headerShown: true, title: AUTH.loginTitle }} />
+        <Stack.Screen name="register" options={{ headerShown: true, title: AUTH.registerTitle }} />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="timer" options={{ headerShown: true, title: 'タイマー', presentation: 'modal' }} />
+        <Stack.Screen name="timer" options={{ headerShown: true, title: TIMER.title, presentation: 'modal' }} />
       </Stack>
     </QueryClientProvider>
   )
