@@ -8,4 +8,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('notifications:dispatch-daily')->everyMinute();
+Schedule::command('notifications:dispatch-free-slots')->everyMinute();
+Schedule::command('notifications:dispatch-schedule-starts')->everyMinute();
