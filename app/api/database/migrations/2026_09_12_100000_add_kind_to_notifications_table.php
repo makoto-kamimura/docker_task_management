@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * 「今日の一歩」は実施できるやりたいことが無いとき「二択で選ぶ」「細分化」になる（design.md 8.2）。
+ * 「今日の一歩」は実施できるやりたいことが無いとき「二択で選ぶ」「細分化」になる（readme 18.5節）。
  * 何を提案したかを通知履歴にも残せるよう kind を足し、タスクを伴わない二択のために
  * task_id を NULL 許容にする。タスクを消しても履歴は残したいので、削除時は NULL 化に変える。
  */

@@ -55,7 +55,7 @@ class User extends Authenticatable
         ];
     }
 
-    /** active な「やりたいこと」（ルート）の上限。サブタスクは数えない（design.md 5 章）。 */
+    /** active な「やりたいこと」（ルート）の上限。サブタスクは数えない（readme 19.2節）。 */
     public const MAX_ACTIVE_ROOT_TASKS = 100;
 
     public function tasks(): HasMany

@@ -2,7 +2,7 @@ import Foundation
 import UserNotifications
 
 /// 通知の [開始] / [あとで]。iPhone（src/notifications/notification-service.ts）と同じカテゴリ・識別子を
-/// 登録しておくと、Watch に届いた通知の操作がこのアプリに渡る。[開始] で今日の一歩のタイマーを直接開く（design.md §9）。
+/// 登録しておくと、Watch に届いた通知の操作がこのアプリに渡る。[開始] で今日の一歩のタイマーを直接開く（readme 18.8節）。
 final class NotificationController: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationController()
 

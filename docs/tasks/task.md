@@ -1,10 +1,10 @@
 # 人生のコンパス タスク一覧
 
-最終更新: 2026-09-11 ／ 設計は [design.md](design.md) を参照
+最終更新: 2026-09-27 ／ 仕様は [readme.md](../../readme.md) を参照
 
 各タスクは **AI コーディングエージェント（Claude Code 等）に 1 件ずつ依頼できる粒度**に分解している。
 
-- 依頼時は「design.md の該当章 + このタスクの完了条件」をプロンプトに含めること
+- 依頼時は「readme の該当章 + このタスクの完了条件」をプロンプトに含めること
 - **区分** … `AI`: AI 単独で完結 ／ `AI+人`: AI が実装し人間が実機・アカウントで確認 ／ `人`: 人間のみ（Apple Developer 契約など）
 - 番号順がそのまま推奨着手順。依存が同じタスクは並行依頼可
 
@@ -14,7 +14,7 @@
 
 ### T-001 Laravel プロジェクト初期化 ［AI］
 - 依存: なし
-- 内容: `app/api` に Laravel 11 を新規作成し、`.env` を Docker の MySQL（design.md 2章・db サービス）に合わせて設定。Sanctum を導入
+- 内容: `app/api` に Laravel 11 を新規作成し、`.env` を Docker の MySQL（readme 16.6節・db サービス）に合わせて設定。Sanctum を導入
 - 完了条件: `docker compose -f platform/docker-compose.yml up -d` 後、`http://localhost:8000` で Laravel の初期画面が返り、`php artisan migrate` が成功する
 
 ### T-002 React (Vite) プロジェクト初期化 ［AI］
@@ -29,7 +29,7 @@
 
 ### T-004 DB マイグレーション+モデル作成 ［AI］
 - 依存: T-001
-- 内容: design.md 5章の 6 テーブル（users 拡張, tasks, comparisons, task_logs, notifications, device_tokens）のマイグレーション・Eloquent モデル・factory・seeder を作成
+- 内容: readme 第19章の 6 テーブル（users 拡張, tasks, comparisons, task_logs, notifications, device_tokens）のマイグレーション・Eloquent モデル・factory・seeder を作成
 - 完了条件: `php artisan migrate:fresh --seed` が成功し、seeder でユーザー 1 名+タスク 10 件が入る
 
 ---
@@ -38,7 +38,7 @@
 
 ### T-101 認証 API ［AI］
 - 依存: T-004
-- 内容: design.md 6章の /auth/register, /auth/login, /auth/logout を実装（Sanctum トークン）。Feature テスト付き
+- 内容: readme 20.1節の /auth/register, /auth/login, /auth/logout を実装（Sanctum トークン）。Feature テスト付き
 - 完了条件: `php artisan test` が通り、curl でトークン取得→認証付きリクエストが成功する
 
 ### T-102 タスク CRUD API ［AI］
@@ -48,7 +48,7 @@
 
 ### T-103 Elo レーティングサービス ［AI］
 - 依存: T-004
-- 内容: design.md 7章の Elo 更新ロジックを独立クラスで実装（K=32、比較 10 回未満は K=64）。単体テストで数値を検証
+- 内容: readme 18.2節の Elo 更新ロジックを独立クラスで実装（K=32、比較 10 回未満は K=64）。単体テストで数値を検証
 - 完了条件: 既知の入力に対する期待レート（手計算値）とテストが一致する
 
 ### T-104 比較 API ［AI］
@@ -63,7 +63,7 @@
 
 ### T-106 Web: 二択比較画面 ［AI］
 - 依存: T-105, T-104
-- 内容: readme の UI（左/右/あとで決める）。回答は 1〜2 秒で次ペアへ。キーボード ←/→ 対応
+- 内容: readme 7.1節の UI（左/右/あとで決める）。回答は 1〜2 秒で次ペアへ。キーボード ←/→ 対応
 - 完了条件: 連続回答ができ、ランキング画面に順位が反映される
 
 ### T-107 Web: ランキング画面 ［AI］
@@ -77,7 +77,7 @@
 
 ### T-201 おすすめスコアサービス+ /compass/today ［AI］
 - 依存: T-104
-- 内容: design.md 8章のスコア計算（w4 は無効のまま）。単体テスト付き
+- 内容: readme 18.3節のスコア計算（w4 は無効のまま）。単体テスト付き
 - 完了条件: rating・経過日数・締切の組合せに対する期待順位がテストで一致する
 
 ### T-202 実施記録 API+ダッシュボード API ［AI］
@@ -87,7 +87,7 @@
 
 ### T-203 Web: 今日のコンパス+完了記録+ダッシュボード ［AI］
 - 依存: T-106, T-202
-- 内容: readme のホーム画面（🧭 今日の一歩 → 開始 → タイマー → 結果入力: 😊完了/😅少しだけ/❌また今度）とダッシュボード
+- 内容: readme 第8章・第9章のホーム画面（🧭 今日の一歩 → 開始 → タイマー → 結果入力: 😊完了/😅少しだけ/❌また今度）とダッシュボード
 - 完了条件: 開始→タイマー→結果記録→ダッシュボード反映が一連で動く
 
 ### T-204 通知スケジューラ ［AI］
@@ -107,7 +107,7 @@
 
 ### T-210 タスクツリー導入 ［AI］ ✅ 完了（2026-07-18）
 - 依存: T-203
-- 内容: [work.md](work.md) の仕様を導入。tasks に parent_id（自己参照 FK・最大 5 階層・循環防止・カスケード削除）を追加。二択比較とランキングはルートのみを対象にし、/compass/today はスコア最高のルートのツリーをたどって葉を「今日の一歩」として返す（ルートからの path 付き）。Web はツリー表示+子タスク追加 UI、今日の一歩にパンくず表示
+- 内容: [readme 第6章](../../readme.md#6-やりたいことタスクツリー) の仕様を導入。tasks に parent_id（自己参照 FK・最大 5 階層・循環防止・カスケード削除）を追加。二択比較とランキングはルートのみを対象にし、/compass/today はスコア最高のルートのツリーをたどって葉を「今日の一歩」として返す（ルートからの path 付き）。Web はツリー表示+子タスク追加 UI、今日の一歩にパンくず表示
 - 完了条件: Feature/Unit テスト（69 件）が通り、API で ルート→子→孫 作成 → /compass/today が葉+path を返すことを確認済み
 - 備考: モバイル/Watch は API 後方互換（GET /tasks はデフォルトでルートのみ、path は追加フィールド）のため変更不要。ツリー UI のモバイル対応は未着手
 
@@ -120,7 +120,7 @@
 - 内容: `schedule_blocks` テーブル（date + 0:00 起点の分。同一日の時間帯重複は 422）と CRUD API を追加。
   任意で「やりたいこと」に紐付けできる（タスク削除時は予定を残して task_id を NULL に）。
   Web `/schedule` とモバイル「時間割」タブに、24 時間を 1 周とするドーナツ円グラフ+一覧+登録フォームを実装。
-  設計方針は [design.md](design.md) §6.2
+  設計方針は [readme 18.6節](../../readme.md#186-円グラフの描画)
 - 完了条件: Feature テスト（全 70 件）が通り、実 API で 登録 → 重複登録が 422 → 一覧取得 まで確認済み。
   Web / モバイルとも `tsc --noEmit` がクリーン
 - 備考: モバイルの円グラフ描画に `react-native-svg@15.12.1`（Expo SDK 54 対応版）を追加。
@@ -131,16 +131,16 @@
 - 内容: T-220 の日付単位（`date`）を曜日単位（`day_of_week` 0=日〜6=土）に置き換え、
   1 週間ぶんの型を一度登録すれば毎週使い回せるようにした。
   予定の塗り残しを「隙間時間」として導出する `FreeSlotService` と
-  `GET /schedule-blocks/free-slots` を追加（[design.md](design.md) §6.3）。
+  `GET /schedule-blocks/free-slots` を追加（[readme 18.7節](../../readme.md#187-隙間時間の算出)）。
   通知は `users.notification_time` の 1 日 1 通を廃止し、隙間の開始時刻ちょうどに送る
-  `notifications:dispatch-free-slots` へ置き換え（§9）。
+  `notifications:dispatch-free-slots` へ置き換え（readme 18.8節）。
   細切れ・深夜を弾くため users に `reminder_min_gap_minutes` /
   `reminder_window_start_minute` / `reminder_window_end_minute` を追加し、
   `GET|PATCH /reminder-settings` で変更できるようにした。
   Web / モバイルとも曜日タブ（月曜始まり・空き時間の合計付き）+ 隙間時間一覧 + 設定 UI を実装
 - 完了条件: Feature/Unit テスト（全 110 件）が通り、Web / モバイルとも `tsc --noEmit` がクリーン
 - 備考: 特定日だけの例外予定（旅行など）は未対応。Watch も未対応。
-  隙間の長さが取れるようになったため §8 の w4 は外部カレンダー連携なしで有効化できる（未実装）
+  隙間の長さが取れるようになったため readme 18.3節の w4 は外部カレンダー連携なしで有効化できる（未実装）
 
 ---
 
@@ -184,7 +184,7 @@
 
 ### T-308 Web / iOS / watchOS の仕様統一+共通化リファクタリング ［AI+人］ ✅ AI 側完了（2026-09-11）
 - 依存: T-221, T-307
-- 内容: 3 端末で食い違っていた仕様を [design.md](design.md) 13 章の表にそろえた。
+- 内容: 3 端末で食い違っていた仕様を [readme 第4章](../../readme.md#4-画面一覧) の表にそろえた。
   - 共通化: Web とモバイルで二重に持っていた型・API 呼び出し・時間割の計算・文言を `app/web/src/shared/` に 1 本化し、両方から `@shared/*` で読む。
     キャッシュの取り直し範囲も共通化（二択の回答後に今日の一歩・ダッシュボードが古いまま残る不具合を解消）
   - iOS: 時間割に Web だけにあった機能（スキマ ON/OFF・他の曜日へコピー・よく使う項目・睡眠/運動/スキマの合計・入力中のプレビュー）を追加。
@@ -205,7 +205,7 @@
 - 依存: T-308
 - 内容: Web がスマホと同じ 480px 幅の 1 列表示だったのを、デスクトップで見やすい配置にする。
   左サイドバーのナビゲーション、画面ごとの 2 列配置（時間割は円グラフを左に固定し一覧・フォームを右、やりたいことはフォームを左・ツリーを右 など）、
-  カードのグリッド表示。狭い画面では従来どおり 1 列に戻す。機能・文言は変えない（design.md 13 章の表は維持）
+  カードのグリッド表示。狭い画面では従来どおり 1 列に戻す。機能・文言は変えない（readme 第4章の表は維持）
 - 完了条件: `tsc` / lint / 本番ビルドがクリーンで、デスクトップ幅・スマホ幅の両方で表示を確認
   （ダミー API を立てて 1440px / 390px で全画面を撮影して確認。390px で横スクロールが出ないことも確認済み）
 - 備考: 幅 900px 以下ではサイドバーを上部の横並びに、1024px 以下では 2 列を 1 列に畳む。
@@ -220,7 +220,7 @@
 
 ### T-311 履歴書（今の履歴書 / 将来の履歴書と必要なタスク） ［AI］ ✅ 完了（2026-09-11）
 - 依存: T-310
-- 内容: 就職・転職用の履歴書を追加（[design.md](design.md) 5 章 resume_profiles / resume_entries、6 章 /resume）。
+- 内容: 就職・転職用の履歴書を追加（[readme 第19章](../../readme.md#19-データモデル) resume_profiles / resume_entries、[第20章](../../readme.md#20-api) /resume）。
   JIS 様式に近い項目を持つが個人情報はすべて任意入力で、文字列は APP_KEY で暗号化して保存する。
   「将来の履歴書」に書いた目標は同名の「やりたいこと」（ルートタスク）になり、目標ごとに必要なタスクを子として登録できる。
   達成したら今の履歴書へ移し、タスクは archived にする。Web / iOS の両方に「履歴書」画面（今 / 将来のタブ）を追加
@@ -259,7 +259,7 @@
 
 ### T-315 利用フローに沿った画面構成（今日の一歩を実施のハブにする） ［AI］ ✅ 完了（2026-09-13）
 - 依存: T-308, T-310, T-311
-- 内容: [design.md](design.md) 1.1 の利用フローどおりに画面を組み替えた。
+- 内容: [readme 第3章](../../readme.md#3-基本フロー) の利用フローどおりに画面を組み替えた。
   - API: `GET /compass/today` が `kind`（task / compare / breakdown / empty）を返す（`App\Services\TodayStepService`）。
     実施できる葉が無ければ二択、優先度が確定していれば細分化を今日の一歩として案内する。
     優先度の確定は「active なルートの全ペアを一度でも比べたか」（`ComparisonPairSelector::isRankingSettled`）
@@ -280,7 +280,7 @@
 方針: 各端末で Google / Apple にログインして得た **ID トークン**を API が検証し、既存と同じ Sanctum トークンを発行する。
 ログイン後の仕組みは変えない（Watch は iPhone のログインを引き継ぐので対応不要）。
 既存のメール登録ユーザーとは、プロバイダがメール確認済み（`email_verified`）と保証する場合に限り、同じメールアドレスのアカウントへ紐付ける。
-`users.password` は既に NULL 可（design.md 5 章）。
+`users.password` は既に NULL 可（readme 19.1節）。
 
 ### T-350 API: Google ID トークンでのログイン ［AI］
 - 依存: T-101, T-904
@@ -334,7 +334,7 @@
 ## AI へ依頼するときのテンプレート
 
 ```
-docs/design.md と docs/task.md を読んでください。
+readme.md と docs/tasks/task.md を読んでください。
 T-XXX を実装してください。
 - 完了条件を満たすこと
 - テストを書き、通ることを確認すること

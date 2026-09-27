@@ -31,7 +31,7 @@ export interface ScheduleDraft {
 /**
  * 24 時間を 1 周とするドーナツ円グラフ。
  * Web にある直接ラベルとホバーの吹き出しは、この大きさでは文字が潰れ、タッチにはホバーがないため出さず、
- * 下の一覧（凡例）で識別する（design.md §6.2）。
+ * 下の一覧（凡例）で識別する（readme 18.6節）。
  */
 export function ScheduleDonut({ slices, draft }: { slices: ScheduleSlice[]; draft?: ScheduleDraft | null }) {
   const planned = scheduledMinutes(slices.map((slice) => slice.block))

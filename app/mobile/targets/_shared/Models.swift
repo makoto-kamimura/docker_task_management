@@ -1,7 +1,7 @@
 import Foundation
 
 /// 今日の一歩として何を実施するか。Web / iPhone（@shared/types の TodayStepKind）と同じ値。
-/// Watch は「実施する一歩」だけを扱い、二択・細分化は iPhone / Web に任せる（design.md 13.1）。
+/// Watch は「実施する一歩」だけを扱い、二択・細分化は iPhone / Web に任せる（readme 4.1節）。
 enum TodayStepKind: String, Codable {
     case task
     case compare

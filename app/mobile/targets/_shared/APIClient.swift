@@ -1,7 +1,7 @@
 import Foundation
 
 /// Direct-to-Laravel client used by the watch app so a step can be fetched
-/// and a result recorded even when the iPhone isn't nearby (design.md 3.2).
+/// and a result recorded even when the iPhone isn't nearby (readme 16.3).
 /// 呼び出す API と送る値は Web / iPhone（app/web/src/shared/api.ts）と同じ。
 enum APIClient {
     enum ClientError: Error {
