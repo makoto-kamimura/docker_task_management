@@ -2,7 +2,7 @@ import Foundation
 import WatchKit
 
 /// Keeps the countdown timer ticking while the wrist is lowered / the app is
-/// backgrounded (design.md 3.2: "カウントダウンタイマー（バックグラウンド継続）").
+/// backgrounded (readme 16.3).
 final class ExtendedRuntimeSessionController: NSObject, ObservableObject, WKExtendedRuntimeSessionDelegate {
     private var session: WKExtendedRuntimeSession?
 

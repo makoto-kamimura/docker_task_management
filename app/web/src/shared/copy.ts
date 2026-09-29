@@ -81,7 +81,7 @@ export const TODAY = {
   flow: ['やりたいことを登録', '隙間時間に通知', '今日の一歩を実施', 'あとで振り返り'],
   /** Apple Watch だけが出す。トークンは iPhone から受け取るため。 */
   watchNeedsLogin: 'iPhoneでログインしてください',
-  /** Apple Watch は二択・細分化を持たないので iPhone / Web へ促す（design.md 13.1）。 */
+  /** Apple Watch は二択・細分化を持たないので iPhone / Web へ促す（readme 4.1節）。 */
   watchPhoneOnly: 'iPhoneで今日の一歩を選んでください',
 } as const
 

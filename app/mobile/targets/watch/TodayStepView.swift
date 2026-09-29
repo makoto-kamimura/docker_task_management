@@ -78,7 +78,7 @@ struct TodayStepView: View {
         } else if isLoading {
             ProgressView()
         } else if connector.stepKind == .compare || connector.stepKind == .breakdown {
-            // 二択・細分化は一覧や入力を伴うので Watch には置かない（design.md 13.1）。
+            // 二択・細分化は一覧や入力を伴うので Watch には置かない（readme 4.1節）。
             caption(Copy.phoneOnly)
         } else {
             caption(Copy.todayEmpty)

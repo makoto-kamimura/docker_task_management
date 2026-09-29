@@ -3,7 +3,7 @@ import WatchConnectivity
 import WidgetKit
 
 /// Receives the login token, API base URL and "today's step" from the iPhone
-/// app via WatchConnectivity (design.md 3.2) and caches them in SharedStore so
+/// app via WatchConnectivity (readme 16.3) and caches them in SharedStore so
 /// both this app and the complication widget can read them.
 /// 受け取るキーは iPhone 側の src/watch/sync.ts と対応している。
 final class PhoneConnector: NSObject, ObservableObject {
