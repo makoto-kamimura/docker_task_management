@@ -233,7 +233,8 @@ flowchart LR
 | 項目 | 内容 |
 |---|---|
 | 登録 | 名前・メールアドレス・パスワード（8文字以上） |
-| ログイン | メールアドレスとパスワード |
+| ログイン | メールアドレスとパスワード。連携した人は SSO（共通の認証サーバー）でもログインできる（[第17章](#17-認証の実装)） |
+| アカウント | SSO の連携・解除と「SSO だけでログインする」（Web はメニューの「アカウント」、モバイルはヘッダーの「アカウント」） |
 | Apple Watch | iPhone のログインを引き継ぐ。Watch だけでのログインはない |
 | 将来の拡張 | Google・Apple でのログイン（Phase 3.5）。WordPress SSO は対応を予定していない（[D17](#22-決定事項)） |
 
@@ -764,6 +765,8 @@ docker compose -f platform/docker-compose.yml down
 
 API のテストは `docker compose -f platform/docker-compose.yml exec api php artisan test` で実行する。
 
+**サンプルデータ**：`php artisan db:seed`（`DemoSeeder`）で、デモ用アカウント `test@example.com` / `password` と、やりたいこと（ツリー）・二択の回答・実施の記録・週間の時間割・履歴書のサンプルを入れる。サンプルは、そのアカウントのやりたいこと・時間割・履歴書がすべて空のときだけ入り、何度実行しても重複しない。公開デモでは API コンテナに `SEED_DEMO_DATA=true` を渡すと、起動のたびに `wait-for-db.sh` が `DemoSeeder` を実行し、初回の起動でサンプルが入る。パスワードは公開前提の値なので、公開デモ以外では `SEED_DEMO_DATA` を有効にしない。
+
 モバイルアプリは Docker に含めず、開発者の PC で起動する（`cd app/mobile && npm install && npx expo start`）。Watch を含む iOS のビルドはローカルの Xcode で行う（[16.3節](#163-watchos-の構成)）。
 
 ## 17. 認証の実装
@@ -777,6 +780,13 @@ API のテストは `docker compose -f platform/docker-compose.yml exec api php 
 - Phase 1：メールアドレスとパスワードで Sanctum のトークンを発行する。
 - Phase 3.5：各端末で Google / Apple にログインして得た **ID トークン**を API が検証し、既存と同じ Sanctum のトークンを発行する。ログイン後の仕組みは変えない（Watch は iPhone のログインを引き継ぐので対応は要らない）。既存のメール登録のユーザーとは、プロバイダがメール確認済み（`email_verified`）と保証する場合に限り、同じメールアドレスのアカウントへ紐付ける。`users.password` はすでに NULL を許す。
 - WordPress SSO は設計の対象外とする（[D17](#22-決定事項)）。
+- **SSO でログイン**（任意。`OIDC_ISSUER`・`OIDC_CLIENT_ID`・`OIDC_CLIENT_SECRET`・`PUBLIC_BASE_URL` がそろったときだけ有効）: 共通の認証サーバー（OpenID Connect）でログインし、既存と同じ Sanctum のトークンを発行する。仕様は、認証サーバーのリポジトリ（docker_auth_server）の `docs/runbooks/app-integration.md` と同じ（ほかの自作アプリと共通）。
+  - パスワードでログインしたあと、「アカウント」で自分の SSO のアカウントを連携した人だけが使える。新規登録はしない。メールアドレスの一致では自動でひも付けない。デモ用（`@example.com`）には連携できない。
+  - 既定では、認証サーバーにパスキー（2 段階認証）でログインした人だけを通す（ID トークンの `amr` に `mfa`。`OIDC_REQUIRE_MFA`）。
+  - ID トークンは、認証サーバーの公開鍵（`jwks_uri`）で署名を確かめ、`iss`・`aud`・`exp`・`nonce` も確かめる（`firebase/php-jwt`、`App\Services\Sso\Oidc`）。
+  - PKCE を二重に使う（クライアント ↔ API と、API ↔ 認証サーバー）。`state`・`intent`・結果コードは DB にハッシュだけを保存し、1 回で消す。Web は `sessionStorage`、モバイルはメモリに `code_verifier` を持つ。モバイルは `expo-web-browser` でアプリ内のブラウザを開き、`lifecompass://auth/sso`（Expo Go では `exp://…/--/auth/sso`）で戻る。
+  - **SSO だけでログインする**（本人が「アカウント」で選ぶ）: オンにすると、パスワードでのログインを 403 で断り、パスワードで発行したトークン（`personal_access_tokens.login_method = pwd`）はほかの端末のものも含めて 401 になる（`login.method` ミドルウェア）。オンにできるのは、連携済みで SSO でログイン中の人だけ。連携を解除すると外れる。非常用に `OIDC_ALLOW_PASSWORD_FOR_SSO_ONLY=true`。
+  - 設定（`app/api/.env`）: `OIDC_ISSUER` / `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` / `PUBLIC_BASE_URL`（認証サーバーに登録するリダイレクト URI は `{PUBLIC_BASE_URL}/api/v1/auth/sso/callback`）、`OIDC_REQUIRE_MFA`（既定 `true`）、`OIDC_DISPLAY_NAME`（`SSO`）、`OIDC_MOBILE_REDIRECT_PREFIXES`（`lifecompass://,exp://`）、`OIDC_LINK_DENY_EMAIL_DOMAINS`（`example.com`）、`OIDC_ALLOW_PASSWORD_FOR_SSO_ONLY`（`false`）。`php artisan serve` の子プロセスは環境変数を引き継がないので、`wait-for-db.sh` が `.env` に書き写す。
 
 ## 18. 機能ごとの実装方針
 
@@ -883,6 +893,15 @@ score = w1 × rating正規化(0-1)
 | reminder_min_gap_minutes | SMALLINT UNSIGNED | DEFAULT 30（これより短い隙間ではリマインドしない） |
 | reminder_window_start_minute | SMALLINT UNSIGNED | DEFAULT 420（7:00。通知してよい時間帯の開始） |
 | reminder_window_end_minute | SMALLINT UNSIGNED | DEFAULT 1320（22:00。同・終了） |
+| sso_only | BOOLEAN | DEFAULT false（SSO だけでログインする） |
+
+SSO 用に次も持つ（[第17章](#17-認証の実装)）。
+
+| テーブル / カラム | 内容 |
+|---|---|
+| `personal_access_tokens.login_method` | `pwd` / `sso`。「SSO だけ」の人のパスワードのトークンを断るのに使う |
+| `user_identities` | SSO の連携。`user_id`, `provider`（sso）, `subject`（認証サーバーの `sub`）, `email`（表示用）, `last_login_at`。`(provider, subject)` と `(user_id, provider)` が unique |
+| `oauth_flows` | SSO の途中の状態。`mode`, `intent_hash` / `state_hash` / `result_hash`（どれもハッシュ）, `client_challenge`, `return_to`, `expires_at`。使ったら消す |
 
 ### 19.2 tasks（やりたいこと / タスクツリー）
 
@@ -1029,6 +1048,14 @@ INDEX：(user_id, timeline)
 | POST | /auth/login | ログイン → トークンを発行 |
 | POST | /auth/logout | ログアウト |
 | GET | /user | ログイン中のユーザー |
+| GET | /auth/providers | SSO が使えるか（`{sso, sso_name}`。公開） |
+| GET | /auth/sso/start | SSO の開始（`mode`・`client`・`code_challenge`・モバイルは `redirect_uri`・連携は `intent`）。認証サーバーへ 303（公開） |
+| GET | /auth/sso/callback | 認証サーバーからの戻り。`?code=` か `?error=`（not_linked / mfa_required / cancelled / expired / failed）でクライアントへ 303（公開） |
+| POST | /auth/sso/exchange | 結果コードと `code_verifier` の交換。ログインならトークン、連携なら（Bearer の本人を確かめて）登録 |
+| GET | /me/identities | 自分の連携と「SSO だけ」の状態 |
+| POST | /me/identities/sso/intent | 連携の開始に使う使い捨ての intent |
+| DELETE | /me/identities/sso | 連携の解除（「SSO だけ」も外す） |
+| PUT | /me/sso-only | 「SSO だけでログインする」の切り替え |
 
 ### 20.2 やりたいこと
 
