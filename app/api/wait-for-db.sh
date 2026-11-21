@@ -63,6 +63,14 @@ case "$MODE" in
     ;;
 esac
 
+# SEED_DEMO_DATA=true のときだけ、公開デモ用のアカウントとサンプルデータを入れる。
+# DemoSeeder はデモユーザーのデータが空のときだけ入れるので、毎回の起動で実行してよい。
+# パスワードが公開前提の値なので、公開デモ以外では有効にしない。
+if [ "${SEED_DEMO_DATA:-false}" = "true" ] && [ "$MODE" != "fresh" ]; then
+  echo "SEED_DEMO_DATA=true → デモ用のサンプルデータを確認します"
+  php artisan db:seed --class=DemoSeeder --force
+fi
+
 php artisan config:clear
 
 exec php artisan serve --host=0.0.0.0 --port=8000
