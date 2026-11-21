@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnforceLoginMethod;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Models\User;
@@ -37,6 +38,14 @@ class AuthController extends Controller
             throw ValidationException::withMessages([
                 'email' => ['メールアドレスまたはパスワードが正しくありません。'],
             ]);
+        }
+
+        // 「SSO だけ」にした人は、パスワードが正しくても SSO へ案内する
+        // (パスワードを確かめたあとに判定するので、パスワードを知らない人には設定が分からない)
+        if (! EnforceLoginMethod::loginMethodAllowed($user, 'pwd')) {
+            return response()->json([
+                'message' => 'このアカウントは SSO でのみログインできます。「SSO でログイン」を使ってください',
+            ], 403);
         }
 
         $token = $user->createToken('api')->plainTextToken;

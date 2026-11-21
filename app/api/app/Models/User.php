@@ -49,6 +49,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'sso_only' => 'boolean',
             'reminder_min_gap_minutes' => 'integer',
             'reminder_window_start_minute' => 'integer',
             'reminder_window_end_minute' => 'integer',
