@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text } from 'react-native'
-import { Redirect, Tabs } from 'expo-router'
+import { Redirect, Tabs, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { logout } from '@shared/api'
 import { COMMON, FLOW_SCREENS, SCREENS, SCREEN_ORDER, type ScreenKey } from '@shared/copy'
@@ -15,6 +15,17 @@ const TAB_ICONS: Record<ScreenKey, keyof typeof Ionicons.glyphMap> = {
   resume: 'document-text-outline',
   compare: 'git-compare-outline',
   todo: 'git-branch-outline',
+}
+
+/** Web のメニューの「アカウント」にあたる。SSO の連携と「SSO だけでログインする」 */
+function AccountButton() {
+  const router = useRouter()
+
+  return (
+    <Pressable onPress={() => router.push('/account')} style={styles.logout} accessibilityRole="button" testID="account-button">
+      <Text style={styles.logoutText}>アカウント</Text>
+    </Pressable>
+  )
 }
 
 /** Web の上部メニュー右端のログアウトにあたる。どのタブからでも押せるようヘッダーに置く。 */
@@ -52,6 +63,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.accent,
         // 5 つのタブを 1 行に収めるため、ラベルを標準より少し小さくする。
         tabBarLabelStyle: { fontSize: 10 },
+        headerLeft: () => <AccountButton />,
         headerRight: () => <LogoutButton />,
       }}
     >

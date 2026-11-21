@@ -34,6 +34,8 @@ export default function RootLayout() {
         <Stack.Screen name="register" options={{ headerShown: true, title: AUTH.registerTitle }} />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="timer" options={{ headerShown: true, title: TIMER.title, presentation: 'modal' }} />
+        <Stack.Screen name="account" options={{ headerShown: true, title: 'アカウント' }} />
+        <Stack.Screen name="auth/sso" options={{ headerShown: false, animation: 'none' }} />
       </Stack>
     </QueryClientProvider>
   )

@@ -1,13 +1,15 @@
-import { useState } from 'react'
-import { StyleSheet } from 'react-native'
+import { useEffect, useState } from 'react'
+import { Image, StyleSheet } from 'react-native'
 import { Link, useRouter } from 'expo-router'
 import { login } from '@shared/api'
 import { errorMessage } from '@shared/api-client'
 import { AUTH, COMMON } from '@shared/copy'
+import { SSO_COPY, fetchSsoName } from '@shared/sso'
+import { signInWithSso } from '../src/lib/sso'
 import { useAuthStore } from '../src/store/auth-store'
 import { requestPermissionsAndRegisterDevice } from '../src/notifications/notification-service'
 import { IconText } from '../src/components/IconText'
-import { ErrorText, Label, PrimaryButton, Screen, TextField } from '../src/components/ui'
+import { ErrorText, Hint, Label, PrimaryButton, Screen, SecondaryButton, TextField } from '../src/components/ui'
 import { colors } from '../src/theme'
 
 export default function LoginScreen() {
@@ -17,6 +19,26 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [sso, setSso] = useState<string | null>(null)
+
+  useEffect(() => {
+    void fetchSsoName().then(setSso)
+  }, [])
+
+  async function handleSso() {
+    setError(null)
+    setSubmitting(true)
+    try {
+      if (await signInWithSso('login')) {
+        requestPermissionsAndRegisterDevice().catch(() => {})
+        router.replace('/(tabs)/today')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : COMMON.unexpectedError)
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   async function handleSubmit() {
     setError(null)
@@ -35,6 +57,7 @@ export default function LoginScreen() {
 
   return (
     <Screen>
+      <Image source={require('../assets/logo.png')} style={styles.logo} />
       <IconText icon="compass-outline" color={colors.text} size={26} textStyle={styles.titleText}>
         {AUTH.loginTitle}
       </IconText>
@@ -61,6 +84,14 @@ export default function LoginScreen() {
         style={styles.submit}
       />
 
+      {sso && (
+        <>
+          <Hint>{SSO_COPY.or}</Hint>
+          <SecondaryButton title={SSO_COPY.login(sso)} onPress={handleSso} disabled={submitting} testID="login-sso" />
+          <Hint>{SSO_COPY.loginHint(sso)}</Hint>
+        </>
+      )}
+
       <Link href="/register" style={styles.link}>
         {AUTH.toRegister}
       </Link>
@@ -69,6 +100,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  logo: { width: 72, height: 72, marginBottom: 16 },
   titleText: { fontSize: 28, fontWeight: '600' },
   submit: { marginTop: 24 },
   link: { marginTop: 16, color: colors.accent, textAlign: 'center' },
