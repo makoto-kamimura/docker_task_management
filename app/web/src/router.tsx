@@ -10,11 +10,15 @@ import { TimerPage } from './pages/TimerPage'
 import { SchedulePage } from './pages/SchedulePage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ResumePage } from './pages/ResumePage'
+import { AccountPage } from './pages/AccountPage'
+import { SsoCompletePage } from './pages/SsoCompletePage'
 import { GuestRoute, ProtectedRoute } from './components/AuthRoutes'
 import { AppLayout } from './components/AppLayout'
 import { SCREEN_PATHS } from './lib/routes'
 
 export const router = createBrowserRouter([
+  // SSO から戻ってくる画面。ログイン (未ログイン) と連携 (ログイン済み) の両方で使うので、ガードの外に置く
+  { path: '/auth/sso/complete', element: <SsoCompletePage /> },
   {
     element: <GuestRoute />,
     children: [
@@ -37,6 +41,7 @@ export const router = createBrowserRouter([
           { path: SCREEN_PATHS.resume, element: <ResumePage /> },
           { path: SCREEN_PATHS.dashboard, element: <DashboardPage /> },
           { path: '/timer', element: <TimerPage /> },
+          { path: '/account', element: <AccountPage /> },
           // ランキングはダッシュボードに統合した。以前のブックマークを生かすために転送だけ残す。
           { path: '/ranking', element: <Navigate to={SCREEN_PATHS.dashboard} replace /> },
         ],
