@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Compass, LogOut } from 'lucide-react'
+import { LogOut, UserRound } from 'lucide-react'
 import { logout } from '@shared/api'
 import { APP_NAME, COMMON, NAV_SECTIONS, SCREENS } from '@shared/copy'
 import { useAuthStore } from '../store/auth-store'
@@ -25,7 +25,7 @@ export function AppLayout() {
     <div className="app-shell">
       <aside className="sidebar">
         <p className="sidebar-brand">
-          <Compass size={22} aria-hidden="true" />
+          <img src="/favicon.svg" alt="" width={24} height={24} />
           {APP_NAME}
         </p>
         <nav className="sidebar-nav" aria-label="メインメニュー">
@@ -46,6 +46,10 @@ export function AppLayout() {
             </div>
           ))}
         </nav>
+        <NavLink to="/account" className={({ isActive }) => `sidebar-logout${isActive ? ' active' : ''}`}>
+          <UserRound size={18} aria-hidden="true" />
+          <span>アカウント</span>
+        </NavLink>
         <button className="sidebar-logout" onClick={handleLogout}>
           <LogOut size={18} aria-hidden="true" />
           <span>{COMMON.logout}</span>
