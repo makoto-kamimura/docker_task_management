@@ -1,4 +1,4 @@
-FROM php:8.3.36-cli
+FROM php:8.3.37-cli
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends unzip libzip-dev default-mysql-client \
