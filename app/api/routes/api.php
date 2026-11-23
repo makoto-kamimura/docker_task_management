@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ReminderSettingController;
 use App\Http\Controllers\Api\ResumeController;
 use App\Http\Controllers\Api\ResumeEntryController;
 use App\Http\Controllers\Api\ScheduleBlockController;
+use App\Http\Controllers\Api\SsoController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TaskLogController;
 use App\Http\Controllers\Api\TitlePresetController;
@@ -18,13 +19,25 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
-    })->middleware('auth:sanctum');
+    })->middleware(['auth:sanctum', 'login.method']);
 
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
-    Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+    Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware(['auth:sanctum', 'login.method']);
 
-    Route::middleware('auth:sanctum')->group(function () {
+    // SSO (OpenID Connect)。OIDC_ISSUER などが未設定なら 404 (providers は sso: false)
+    Route::get('/auth/providers', [SsoController::class, 'providers']);
+    Route::get('/auth/sso/start', [SsoController::class, 'start']);
+    Route::get('/auth/sso/callback', [SsoController::class, 'callback']);
+    Route::post('/auth/sso/exchange', [SsoController::class, 'exchange']);
+    Route::middleware(['auth:sanctum', 'login.method'])->group(function () {
+        Route::get('/me/identities', [SsoController::class, 'identities']);
+        Route::post('/me/identities/sso/intent', [SsoController::class, 'intent']);
+        Route::delete('/me/identities/sso', [SsoController::class, 'unlink']);
+        Route::put('/me/sso-only', [SsoController::class, 'setSsoOnly']);
+    });
+
+    Route::middleware(['auth:sanctum', 'login.method'])->group(function () {
         Route::apiResource('tasks', TaskController::class)->except(['show']);
 
         // apiResource より先に置く。/schedule-blocks/{id} と食い合わないようにするため。
