@@ -13,4 +13,8 @@ WORKDIR /app
 
 EXPOSE 8000
 
+# 土台のイメージの healthcheck は管理用の口（:2019）を見るが、php-server では無効なので、アプリの /up を見る
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:8000/up || exit 1
+
 CMD ["frankenphp", "php-server", "--listen", ":8000", "--root", "public/"]
