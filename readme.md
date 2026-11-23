@@ -619,7 +619,7 @@ Reactを15分やりませんか？
 | Web | React 19 + Vite + TypeScript | SPA。ログイン後の利用が前提で SEO が要らないため、SSR（Next.js）は採用しない |
 | モバイル | React Native（Expo SDK 54）+ TypeScript | iOS / Android 共通 |
 | watchOS | SwiftUI + WidgetKit | ネイティブで実装する（[16.3節](#163-watchos-の構成)） |
-| API | Laravel 11（PHP 8.3） | REST。将来 GraphQL を追加できる |
+| API | Laravel 11（PHP 8.3）・FrankenPHP（`php-server`） | REST。将来 GraphQL を追加できる。配信は FrankenPHP のワーカーではない通常のモード（`php artisan serve` は開発用の 1 プロセスのサーバーで、遅いリクエストにほかが待たされるため） |
 | データベース | MySQL 8.4 | Docker のボリュームで永続化する |
 | 認証 | Laravel Sanctum | トークン認証 |
 | 通知 | APNs / FCM | 隙間時間に送る「今日の一歩」の通知 |
@@ -786,7 +786,7 @@ API のテストは `docker compose -f platform/docker-compose.yml exec api php 
   - ID トークンは、認証サーバーの公開鍵（`jwks_uri`）で署名を確かめ、`iss`・`aud`・`exp`・`nonce` も確かめる（`firebase/php-jwt`、`App\Services\Sso\Oidc`）。
   - PKCE を二重に使う（クライアント ↔ API と、API ↔ 認証サーバー）。`state`・`intent`・結果コードは DB にハッシュだけを保存し、1 回で消す。Web は `sessionStorage`、モバイルはメモリに `code_verifier` を持つ。モバイルは `expo-web-browser` でアプリ内のブラウザを開き、`lifecompass://auth/sso`（Expo Go では `exp://…/--/auth/sso`）で戻る。
   - **SSO だけでログインする**（本人が「アカウント」で選ぶ）: オンにすると、パスワードでのログインを 403 で断り、パスワードで発行したトークン（`personal_access_tokens.login_method = pwd`）はほかの端末のものも含めて 401 になる（`login.method` ミドルウェア）。オンにできるのは、連携済みで SSO でログイン中の人だけ。連携を解除すると外れる。非常用に `OIDC_ALLOW_PASSWORD_FOR_SSO_ONLY=true`。
-  - 設定（`app/api/.env`）: `OIDC_ISSUER` / `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` / `PUBLIC_BASE_URL`（認証サーバーに登録するリダイレクト URI は `{PUBLIC_BASE_URL}/api/v1/auth/sso/callback`）、`OIDC_REQUIRE_MFA`（既定 `true`）、`OIDC_DISPLAY_NAME`（`SSO`）、`OIDC_MOBILE_REDIRECT_PREFIXES`（`lifecompass://,exp://`）、`OIDC_LINK_DENY_EMAIL_DOMAINS`（`example.com`）、`OIDC_ALLOW_PASSWORD_FOR_SSO_ONLY`（`false`）。`php artisan serve` の子プロセスは環境変数を引き継がないので、`wait-for-db.sh` が `.env` に書き写す。
+  - 設定（`app/api/.env`）: `OIDC_ISSUER` / `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` / `PUBLIC_BASE_URL`（認証サーバーに登録するリダイレクト URI は `{PUBLIC_BASE_URL}/api/v1/auth/sso/callback`）、`OIDC_REQUIRE_MFA`（既定 `true`）、`OIDC_DISPLAY_NAME`（`SSO`）、`OIDC_MOBILE_REDIRECT_PREFIXES`（`lifecompass://,exp://`）、`OIDC_LINK_DENY_EMAIL_DOMAINS`（`example.com`）、`OIDC_ALLOW_PASSWORD_FOR_SSO_ONLY`（`false`）。`wait-for-db.sh` が `.env` にも書き写す（配信と artisan のコマンドが同じ値を見るように）。
 
 ## 18. 機能ごとの実装方針
 
