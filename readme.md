@@ -619,7 +619,7 @@ Reactを15分やりませんか？
 | Web | React 19 + Vite + TypeScript | SPA。ログイン後の利用が前提で SEO が要らないため、SSR（Next.js）は採用しない |
 | モバイル | React Native（Expo SDK 54）+ TypeScript | iOS / Android 共通 |
 | watchOS | SwiftUI + WidgetKit | ネイティブで実装する（[16.3節](#163-watchos-の構成)） |
-| API | Laravel 11（PHP 8.3）・FrankenPHP（`php-server`） | REST。将来 GraphQL を追加できる。配信は FrankenPHP のワーカーではない通常のモード（`php artisan serve` は開発用の 1 プロセスのサーバーで、遅いリクエストにほかが待たされるため） |
+| API | Laravel 12（PHP 8.3）・FrankenPHP（`php-server`） | REST。将来 GraphQL を追加できる。配信は FrankenPHP のワーカーではない通常のモード（`php artisan serve` は開発用の 1 プロセスのサーバーで、遅いリクエストにほかが待たされるため） |
 | データベース | MySQL 8.4 | Docker のボリュームで永続化する |
 | 認証 | Laravel Sanctum | トークン認証 |
 | 通知 | APNs / FCM | 隙間時間に送る「今日の一歩」の通知 |
