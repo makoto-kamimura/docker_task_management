@@ -1,4 +1,4 @@
-# 人生のコンパス（Life Compass）
+# 人生のコンパス — Life Compass（docker_task_management）
 
 > **迷う時間を、進む時間へ。**
 
@@ -25,6 +25,7 @@
 | ステータス | **Phase 3 実装済み（実機確認待ち）**（[ロードマップ](#15-開発ロードマップ)の Phase 0〜2.6 完了。Phase 3 は AI 側の実装が完了し、iPhone・Apple Watch の実機確認と履歴書の写真が残る） |
 | リリース日 | 未定 |
 | 作成者 | **Makoto Kamimura** — [@makoto-kamimura](https://github.com/makoto-kamimura) |
+| ライセンス | [MIT](LICENSE) |
 
 このREADMEは、プロジェクト紹介と仕様書を兼ね、次の2部と付録で構成する。
 
@@ -687,7 +688,7 @@ Expo プロジェクト (app/mobile)
 
 ```text
 docker_task_management/
-├── readme.md               企画・仕様書（本書）
+├── README.md               企画・仕様書（本書）
 ├── app/
 │   ├── web/                React + Vite の SPA
 │   │   └── src/shared/     Web / モバイル共通の型・API 呼び出し・画面ロジック・文言（16.5節）
